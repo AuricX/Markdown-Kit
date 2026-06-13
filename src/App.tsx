@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import SplitView from "./components/SplitView";
 import EditorPane from "./components/EditorPane";
@@ -150,14 +151,11 @@ function App() {
 
     // Best-effort native window title. Wrapped so it never throws outside Tauri
     // (e.g. in the browser dev server or jsdom tests).
-    (async () => {
-      try {
-        const { getCurrentWindow } = await import("@tauri-apps/api/window");
-        await getCurrentWindow().setTitle(title);
-      } catch {
-        // Not running inside Tauri — document.title is sufficient.
-      }
-    })();
+    try {
+      void getCurrentWindow().setTitle(title);
+    } catch {
+      // Not running inside Tauri — document.title is sufficient.
+    }
   }, [filePath, dirty]);
 
   return (
