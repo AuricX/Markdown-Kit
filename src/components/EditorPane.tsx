@@ -47,7 +47,7 @@ export default function EditorPane({ value, onChange }: EditorPaneProps) {
     <div className="pane editor-pane" aria-label="Markdown editor">
       <CodeMirror
         value={value}
-        onChange={(val) => onChange(val)}
+        onChange={onChange}
         theme={oneDark}
         extensions={extensions}
         height="100%"
