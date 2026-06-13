@@ -1,0 +1,278 @@
+:root {
+  --bg: #1e1e1e;
+  --fg: #d4d4d4;
+  --divider: #3c3c3c;
+  --accent: #007acc;
+
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+  background-color: var(--bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+.app {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* SplitView fills whatever vertical space the banner leaves. */
+.app .split-group {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Error banner (VSCode-error-ish: dark red, dismissible) */
+.error-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background-color: #5a1d1d;
+  color: #f5c2c2;
+  font-size: 13px;
+  border-bottom: 1px solid #7a2727;
+}
+
+.error-banner-text {
+  flex: 1 1 auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-banner-dismiss {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.error-banner-dismiss:hover {
+  color: #ffffff;
+}
+
+/* Split layout */
+.split-group {
+  height: 100%;
+  width: 100%;
+}
+
+.split-panel {
+  height: 100%;
+  overflow: hidden;
+}
+
+.split-handle {
+  width: 1px;
+  background-color: var(--divider);
+  /* Widen the hit area without widening the visible line. */
+  outline: 4px solid transparent;
+  outline-offset: -2px;
+  transition: background-color 0.1s ease;
+}
+
+.split-handle:hover,
+.split-handle[data-resize-handle-state="hover"],
+.split-handle[data-resize-handle-state="drag"] {
+  background-color: var(--accent);
+}
+
+/* Panes */
+.pane {
+  height: 100%;
+  overflow: auto;
+}
+
+.editor-pane {
+  background-color: var(--bg);
+}
+
+.preview-pane {
+  background-color: var(--bg);
+  border-left: none;
+  padding: 0;
+}
+
+/* CodeMirror fills the editor pane. */
+.editor-pane .cm-editor {
+  height: 100%;
+}
+
+/* Rendered markdown (GitHub/VSCode dark-ish) */
+.markdown-body {
+  padding: 16px 24px;
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #e6e6e6;
+}
+
+.markdown-body h1 {
+  font-size: 1.9em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--divider);
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--divider);
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote,
+.markdown-body table,
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+.markdown-body a {
+  color: #4ea1f3;
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+/* GFM task list checkboxes */
+.markdown-body input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+.markdown-body blockquote {
+  margin-left: 0;
+  padding: 0 1em;
+  color: #9a9a9a;
+  border-left: 0.25em solid var(--divider);
+}
+
+/* Inline code */
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  background-color: #2d2d2d;
+  border-radius: 4px;
+}
+
+/* Code blocks — reset inline-code styling inside <pre>. */
+.markdown-body pre {
+  padding: 12px 16px;
+  overflow: auto;
+  background-color: #161616;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Tables */
+.markdown-body table {
+  border-collapse: collapse;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 6px 13px;
+  border: 1px solid var(--divider);
+}
+
+.markdown-body th {
+  font-weight: 600;
+  background-color: #2a2a2a;
+}
+
+.markdown-body tr:nth-child(2n) {
+  background-color: #232323;
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.markdown-body hr {
+  height: 1px;
+  margin: 1.5em 0;
+  border: none;
+  background-color: var(--divider);
+}
