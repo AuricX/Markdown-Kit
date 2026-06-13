@@ -1,33 +1,51 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
+import SplitView from "./components/SplitView";
+import EditorPane from "./components/EditorPane";
+import PreviewPane from "./components/PreviewPane";
+
+function basename(path: string): string {
+  const parts = path.split(/[\\/]/);
+  return parts[parts.length - 1] || path;
+}
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [filePath, setFilePath] = useState<string | null>(null);
+  const [content, setContent] = useState<string>("");
+  const [dirty, setDirty] = useState<boolean>(false);
 
-  async function greet() {
-    setGreetMsg(await invoke<string>("greet", { name }));
+  // setFilePath is unused until Task 5 wires file I/O; reference it so the
+  // strict "noUnusedLocals" check passes without disabling the setter.
+  void setFilePath;
+
+  function handleChange(next: string) {
+    setContent(next);
+    setDirty(true);
   }
 
+  useEffect(() => {
+    const name = filePath ? basename(filePath) : "Untitled";
+    const title = `${name}${dirty ? " ●" : ""}`;
+    document.title = title;
+
+    // Best-effort native window title. Wrapped so it never throws outside Tauri
+    // (e.g. in the browser dev server or jsdom tests).
+    (async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        await getCurrentWindow().setTitle(title);
+      } catch {
+        // Not running inside Tauri — document.title is sufficient.
+      }
+    })();
+  }, [filePath, dirty]);
+
   return (
-    <main className="container">
-      <h1>Markdown Editor</h1>
-      <p>Welcome! This will become a Markdown viewer/editor.</p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      {greetMsg && <p>{greetMsg}</p>}
-    </main>
+    <div className="app">
+      <SplitView
+        left={<EditorPane value={content} onChange={handleChange} />}
+        right={<PreviewPane value={content} />}
+      />
+    </div>
   );
 }
 
