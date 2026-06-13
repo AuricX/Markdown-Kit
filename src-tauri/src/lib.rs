@@ -10,12 +10,6 @@ use tauri::Manager;
 #[derive(Default)]
 struct PendingFile(Mutex<Vec<String>>);
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 /// Read a UTF-8 file's contents. IO/encoding errors are mapped to a String
 /// so they cross the IPC boundary cleanly.
 #[tauri::command]
@@ -63,6 +57,10 @@ fn dispatch_opened_file<R: tauri::Runtime>(app: &tauri::AppHandle<R>, path: Stri
         .unwrap_or_else(|e| e.into_inner())
         .push(path.clone());
     let _ = app.emit("file-opened", path);
+    // Bring the existing window forward so an "Open with" on a running app is visible.
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_focus();
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -88,7 +86,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(PendingFile::default())
         .invoke_handler(tauri::generate_handler![
-            greet,
             read_md,
             save_md,
             take_pending_file
