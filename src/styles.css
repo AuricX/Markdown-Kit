@@ -41,6 +41,48 @@ body {
 .app {
   height: 100vh;
   width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* SplitView fills whatever vertical space the banner leaves. */
+.app .split-group {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Error banner (VSCode-error-ish: dark red, dismissible) */
+.error-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background-color: #5a1d1d;
+  color: #f5c2c2;
+  font-size: 13px;
+  border-bottom: 1px solid #7a2727;
+}
+
+.error-banner-text {
+  flex: 1 1 auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-banner-dismiss {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.error-banner-dismiss:hover {
+  color: #ffffff;
 }
 
 /* Split layout */
