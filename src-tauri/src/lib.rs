@@ -4,11 +4,11 @@ use std::sync::Mutex;
 use tauri::Emitter;
 use tauri::Manager;
 
-/// Shared state holding the most recent file path delivered by the OS
+/// Shared state holding file paths delivered by the OS
 /// (via `RunEvent::Opened` on macOS, or single-instance argv on relaunch)
-/// before the frontend was ready to consume it. Cleared once taken.
+/// before the frontend was ready to consume them. Drained once taken.
 #[derive(Default)]
-struct PendingFile(Mutex<Option<String>>);
+struct PendingFile(Mutex<Vec<String>>);
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -29,11 +29,18 @@ fn save_md(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| format!("Failed to write {}: {}", path, e))
 }
 
-/// Return and clear any file path cached before the frontend was ready
+/// Return and clear any file paths cached before the frontend was ready
 /// (covers the cold-start case where `Opened` fired before the webview mounted).
 #[tauri::command]
-fn take_pending_file(state: tauri::State<'_, PendingFile>) -> Option<String> {
-    state.0.lock().unwrap().take()
+fn take_pending_file(state: tauri::State<'_, PendingFile>) -> Vec<String> {
+    std::mem::take(&mut *state.0.lock().unwrap_or_else(|e| e.into_inner()))
+}
+
+/// True if `arg` ends with a known markdown extension (case-insensitive).
+#[cfg(desktop)]
+fn has_markdown_extension(arg: &str) -> bool {
+    let lower = arg.to_ascii_lowercase();
+    lower.ends_with(".md") || lower.ends_with(".markdown") || lower.ends_with(".mdx")
 }
 
 /// Convert a `file://` URL (as delivered by macOS Open-with) to a filesystem path.
@@ -42,16 +49,19 @@ fn take_pending_file(state: tauri::State<'_, PendingFile>) -> Option<String> {
 fn url_to_path(url: &tauri::Url) -> Option<String> {
     url.to_file_path()
         .ok()
-        .map(|p| p.to_string_lossy().into_owned())
+        .and_then(|p| p.into_os_string().into_string().ok())
 }
 
 /// Cache a path in the pending-file state and emit `file-opened` so an
 /// already-running frontend can react immediately.
 #[cfg(desktop)]
 fn dispatch_opened_file<R: tauri::Runtime>(app: &tauri::AppHandle<R>, path: String) {
-    if let Some(state) = app.try_state::<PendingFile>() {
-        *state.0.lock().unwrap() = Some(path.clone());
-    }
+    let state = app.state::<PendingFile>();
+    state
+        .0
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .push(path.clone());
     let _ = app.emit("file-opened", path);
 }
 
@@ -65,7 +75,9 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if let Some(path) = argv.iter().skip(1).find(|a| !a.starts_with('-')) {
+            // Match the first argv entry (skipping argv[0]) that looks like a
+            // markdown file by extension; ignore flags and other arguments.
+            if let Some(path) = argv.iter().skip(1).find(|a| has_markdown_extension(a)) {
                 dispatch_opened_file(app, path.clone());
             }
         }));
@@ -98,7 +110,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{read_md, save_md};
+    use super::{read_md, save_md, PendingFile};
     use std::path::PathBuf;
 
     /// Unique temp path per test to avoid cross-test collisions.
@@ -149,5 +161,31 @@ mod tests {
         let result = save_md(bad.to_string_lossy().into_owned(), "x".to_string());
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to write"));
+    }
+
+    /// Pushing multiple paths then draining returns them all in order.
+    /// Mirrors what `take_pending_file` does (std::mem::take on the inner Vec).
+    #[test]
+    fn pending_file_pushes_then_drains_in_order() {
+        let pending = PendingFile::default();
+        pending
+            .0
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push("/a/first.md".to_string());
+        pending
+            .0
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push("/b/second.md".to_string());
+
+        let taken =
+            std::mem::take(&mut *pending.0.lock().unwrap_or_else(|e| e.into_inner()));
+        assert_eq!(taken, vec!["/a/first.md", "/b/second.md"]);
+
+        // After draining, the state is empty.
+        let again =
+            std::mem::take(&mut *pending.0.lock().unwrap_or_else(|e| e.into_inner()));
+        assert!(again.is_empty());
     }
 }
