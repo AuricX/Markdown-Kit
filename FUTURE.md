@@ -80,6 +80,30 @@ Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batches).
 
 ---
 
+## Known concerns / caveats
+
+Things that work but carry caveats worth tracking:
+
+- **Unsigned bundle** — the `.app`/`.dmg` are not code-signed or notarized. macOS Gatekeeper warns
+  on first launch (right-click → **Open**, or System Settings → Privacy & Security → **Open Anyway**).
+  Needed before any real distribution; see "Code signing + notarization" below.
+- **Apple Silicon only** — the DMG is `aarch64`. No Intel/universal build produced. Intel Macs can't
+  run it as-is (would need `--target universal-apple-darwin` or an x86_64 build).
+- **`Cmd+Q` confirm uses `window.confirm`** — a JS dialog, not a native sheet. It blocks the webview
+  while open (acceptable here, but note it for any future webview-dialog work).
+- **Launch metric is approximate** — `report_ready` measures process-start → React mount, not final
+  pixel paint (a hair later). Measured ~0.5–1.2s; the true time-to-interactive is marginally higher.
+- **`report_ready` ships in the release binary** — env-gated (`MD_LAUNCH_TIMING`), silent and inert
+  otherwise. Harmless, but it is diagnostic code in production; strip if undesired.
+- **Live view mode is not remembered** — only the *default* view persists (by design). Switching
+  view during a session resets on relaunch; revisit if users expect last-used to stick.
+- **External-change detection is focus-based** — only re-stats on window focus, not via a file
+  watcher. A change while the window stays focused isn't noticed until focus is lost and regained.
+- **Settings store loads `localStorage` once at module import** — fine in the app; tests that need a
+  different seed must call `setSettings(...)` rather than reseeding storage after import.
+
+---
+
 ## Known manual-only verifications (no automated coverage)
 
 Require a real macOS bundle (see README §"Manual verification checklist"):
