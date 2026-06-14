@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Markdown",
+  "productName": "Markdown Kit",
   "version": "0.1.0",
-  "identifier": "com.auricx.md-viewer-editor",
+  "identifier": "com.auricx.markdown-kit",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Markdown",
+        "title": "Markdown Kit",
         "width": 1100,
         "height": 700,
         "minWidth": 600,

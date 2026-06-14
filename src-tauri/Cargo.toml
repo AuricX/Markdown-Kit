@@ -1,5 +1,5 @@
 [package]
-name = "md-viewer-editor"
+name = "markdown-kit"
 version = "0.1.0"
 description = "A Markdown viewer and editor"
 authors = []
@@ -8,7 +8,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "md_viewer_editor_lib"
+name = "markdown_kit_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

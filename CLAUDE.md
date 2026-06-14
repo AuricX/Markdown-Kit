@@ -17,7 +17,7 @@ menu bar. **Tauri v2 + React 19 + TypeScript. macOS-targeted.**
 | Layout   | `react-resizable-panels`                                                       |
 | Tests    | Vitest + Testing Library (frontend), `cargo test` (Rust)                       |
 
-Identifier: `com.auricx.md-viewer-editor`. Product name: **Markdown**. Window 1100×700, min 600×400.
+Identifier: `com.auricx.markdown-kit`. Product name: **Markdown Kit**. Window 1100×700, min 600×400.
 
 ---
 
@@ -192,7 +192,7 @@ pnpm tauri dev      # app, hot reload
 pnpm test           # frontend (Vitest)
 pnpm build          # tsc + vite production build
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust
-pnpm tauri build    # → src-tauri/target/release/bundle/macos/Markdown.app + .dmg
+pnpm tauri build    # → src-tauri/target/release/bundle/macos/Markdown Kit.app + .dmg
 ```
 
 ---

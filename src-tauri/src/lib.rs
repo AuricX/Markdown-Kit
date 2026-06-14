@@ -192,7 +192,7 @@ fn build_app_menu<R: tauri::Runtime>(
         .build(app)?;
 
     // App menu (macOS shows the product name as the title).
-    let app_menu = SubmenuBuilder::new(app, "Markdown")
+    let app_menu = SubmenuBuilder::new(app, "Markdown Kit")
         .about(None)
         .separator()
         .item(&prefs_item)
