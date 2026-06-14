@@ -148,6 +148,26 @@ modal just relocates its control. `SettingsModal` is opened from the ⚙ toolbar
   (updater). Signing key pubkey in `tauri.conf.json`; private key is a repo secret.
 - **Recent files persist across reinstall** — stored in `app_config_dir` (outside the
   `.app` bundle), survive as long as the bundle identifier is unchanged.
+- **Homebrew install** — `brew install --cask auricx/tap/markdown-kit`. Cask lives in
+  the public `AuricX/homebrew-tap` repo; the `update-cask` CI job bumps its version +
+  sha256 on each release. App is unsigned → first launch needs right-click→Open.
+
+---
+
+## Distribution
+
+The repo is **public** — required so GitHub Release assets (`latest.json`, `.dmg`,
+`.app.tar.gz`) are downloadable unauthenticated by the updater and Homebrew.
+
+- **Release**: `make release VERSION=x.y.z` (guards version > latest tag, bumps all
+  manifests, tags, pushes → CI builds + publishes). `make unrelease VERSION=x.y.z`
+  deletes a bad release + tag.
+- **Updater endpoint**: `releases/latest/download/latest.json` ("latest" = newest by
+  date, hence the forward-only version guard).
+- **Homebrew tap**: `AuricX/homebrew-tap`, cask `Casks/markdown-kit.rb`, auto-bumped by CI.
+- **Secrets** (on `Markdown-Kit` repo): `TAURI_SIGNING_PRIVATE_KEY`,
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty), `HOMEBREW_TAP_TOKEN` (PAT,
+  Contents:write on the tap).
 
 ---
 
