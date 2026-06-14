@@ -5,6 +5,7 @@ name: Release
 # artifacts (.app.tar.gz + .sig + latest.json) that the in-app auto-updater
 # consumes. The updater endpoint points at this release's latest.json.
 #
+# Repo: github.com/AuricX/Markdown-Kit
 # Required repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/markdown-kit.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  the key password (empty string if none)

@@ -27,7 +27,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/AuricX/Tauri/releases/latest/download/latest.json"
+        "https://github.com/AuricX/Markdown-Kit/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZBQ0M2QzQ4MDQ3RkYzNTgKUldSWTgzOEVTR3pNYW0rd01mSTFuYjcydnBTdWsyNmpReGhLV0ZBZ1FXdlBXV0Q4K1RDVTdQSjIK"
     }
