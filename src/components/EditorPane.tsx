@@ -5,6 +5,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { indentUnit } from "@codemirror/language";
 import { indentWithTab } from "@codemirror/commands";
+import { useTheme } from "../theme";
 
 interface EditorPaneProps {
   value: string;
@@ -43,12 +44,13 @@ const extensions = [
  * wrapping <div> because CodeMirror renders a contenteditable, not a textarea.
  */
 export default function EditorPane({ value, onChange }: EditorPaneProps) {
+  const { theme } = useTheme();
   return (
     <div className="pane editor-pane" aria-label="Markdown editor">
       <CodeMirror
         value={value}
         onChange={onChange}
-        theme={oneDark}
+        theme={theme === "dark" ? oneDark : "light"}
         extensions={extensions}
         height="100%"
         style={{ height: "100%" }}

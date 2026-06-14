@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // --- Tauri mocks (no real backend) ---
@@ -60,8 +60,10 @@ describe("file I/O wiring", () => {
     const cb = getFileOpenedCallback();
     cb({ payload: "/tmp/note.md" });
 
-    // Preview renders the loaded markdown as a heading.
-    const heading = await screen.findByText("Loaded Heading");
+    // Preview renders the loaded markdown as a heading. Scope to the preview
+    // pane: the editor source also contains this text.
+    const preview = screen.getByLabelText("Markdown preview");
+    const heading = await within(preview).findByText("Loaded Heading");
     expect(heading.tagName).toBe("H1");
     expect(invoke).toHaveBeenCalledWith("read_md", { path: "/tmp/note.md" });
   });

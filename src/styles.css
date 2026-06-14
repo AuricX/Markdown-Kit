@@ -1,8 +1,20 @@
 :root {
+  /* Dark palette (default) */
   --bg: #1e1e1e;
   --fg: #d4d4d4;
   --divider: #3c3c3c;
   --accent: #007acc;
+
+  --bg-elevated: #252526;
+  --bg-code-inline: #2d2d2d;
+  --bg-code-block: #161616;
+  --bg-table-header: #2a2a2a;
+  --bg-row-alt: #232323;
+  --btn-hover: #2d2d2d;
+
+  --fg-heading: #e6e6e6;
+  --fg-muted: #9a9a9a;
+  --link: #4ea1f3;
 
   --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
@@ -18,6 +30,25 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light palette */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --fg: #24292f;
+  --divider: #d0d7de;
+  --accent: #0969da;
+
+  --bg-elevated: #f6f8fa;
+  --bg-code-inline: #eff1f3;
+  --bg-code-block: #f6f8fa;
+  --bg-table-header: #f0f3f6;
+  --bg-row-alt: #f6f8fa;
+  --btn-hover: #e7ebef;
+
+  --fg-heading: #1f2328;
+  --fg-muted: #57606a;
+  --link: #0969da;
 }
 
 * {
@@ -45,13 +76,97 @@ body {
   flex-direction: column;
 }
 
-/* SplitView fills whatever vertical space the banner leaves. */
-.app .split-group {
+/* SplitView / single-pane fills whatever vertical space the bars leave. */
+.app .split-group,
+.app .single-pane {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-/* Error banner (VSCode-error-ish: dark red, dismissible) */
+/* ---------------------------------------------------------------- Navbar */
+.navbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px;
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--divider);
+  user-select: none;
+}
+
+.navbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar-title {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 13px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-dirty {
+  color: var(--accent);
+}
+
+.navbar-btn {
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.navbar-btn:hover {
+  background-color: var(--btn-hover);
+}
+
+.navbar-theme {
+  font-size: 14px;
+  min-width: 28px;
+}
+
+/* Segmented view-mode control */
+.navbar-segment {
+  display: flex;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.navbar-seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+.navbar-seg-btn + .navbar-seg-btn {
+  border-left: 1px solid var(--divider);
+}
+
+.navbar-seg-btn:hover {
+  background-color: var(--btn-hover);
+}
+
+.navbar-seg-btn.is-active {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------- Error banner */
 .error-banner {
   flex: 0 0 auto;
   display: flex;
@@ -70,6 +185,22 @@ body {
   word-break: break-word;
 }
 
+.error-banner-action {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.error-banner-action:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
 .error-banner-dismiss {
   flex: 0 0 auto;
   background: transparent;
@@ -85,7 +216,7 @@ body {
   color: #ffffff;
 }
 
-/* Split layout */
+/* --------------------------------------------------------- Split layout */
 .split-group {
   height: 100%;
   width: 100%;
@@ -93,6 +224,12 @@ body {
 
 .split-panel {
   height: 100%;
+  overflow: hidden;
+}
+
+.single-pane {
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -132,7 +269,7 @@ body {
   height: 100%;
 }
 
-/* Rendered markdown (GitHub/VSCode dark-ish) */
+/* ------------------------------------------------- Rendered markdown */
 .markdown-body {
   padding: 16px 24px;
   color: var(--fg);
@@ -156,7 +293,7 @@ body {
   margin-bottom: 0.6em;
   font-weight: 600;
   line-height: 1.25;
-  color: #e6e6e6;
+  color: var(--fg-heading);
 }
 
 .markdown-body h1 {
@@ -186,7 +323,7 @@ body {
 }
 
 .markdown-body a {
-  color: #4ea1f3;
+  color: var(--link);
   text-decoration: none;
 }
 
@@ -211,7 +348,7 @@ body {
 .markdown-body blockquote {
   margin-left: 0;
   padding: 0 1em;
-  color: #9a9a9a;
+  color: var(--fg-muted);
   border-left: 0.25em solid var(--divider);
 }
 
@@ -220,7 +357,7 @@ body {
   font-family: var(--font-mono);
   font-size: 0.875em;
   padding: 0.2em 0.4em;
-  background-color: #2d2d2d;
+  background-color: var(--bg-code-inline);
   border-radius: 4px;
 }
 
@@ -228,7 +365,7 @@ body {
 .markdown-body pre {
   padding: 12px 16px;
   overflow: auto;
-  background-color: #161616;
+  background-color: var(--bg-code-block);
   border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -259,11 +396,11 @@ body {
 
 .markdown-body th {
   font-weight: 600;
-  background-color: #2a2a2a;
+  background-color: var(--bg-table-header);
 }
 
 .markdown-body tr:nth-child(2n) {
-  background-color: #232323;
+  background-color: var(--bg-row-alt);
 }
 
 .markdown-body img {
@@ -275,4 +412,37 @@ body {
   margin: 1.5em 0;
   border: none;
   background-color: var(--divider);
+}
+
+/* --------------------------------------------------------------- Print */
+/* Print to PDF: show only the rendered preview, full width, light-on-white. */
+@media print {
+  .navbar,
+  .error-banner,
+  .split-handle,
+  .editor-pane {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root,
+  .app,
+  .split-group,
+  .single-pane,
+  .split-panel,
+  .pane {
+    height: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+
+  .preview-pane {
+    display: block !important;
+  }
+
+  .markdown-body {
+    color: #000;
+    padding: 0;
+  }
 }
