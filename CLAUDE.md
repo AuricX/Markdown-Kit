@@ -52,6 +52,9 @@ IPC commands (registered in `invoke_handler`):
 - **`add_recent_file(path) -> Vec<String>`** — prepend to the persisted recent list,
   rebuild the menu, return the new list.
 - **`get_recent_files() -> Vec<String>`** / **`clear_recent_files()`**.
+- **`set_dirty(bool)`** — mirrors the frontend dirty flag into `QuitGuard` for the quit guard.
+- **`quit_app()`** — sets the force flag and `app.exit(0)` after the user confirms a dirty quit.
+- **`report_ready()`** — opt-in (`MD_LAUNCH_TIMING`) cold-launch timing; no-op otherwise.
 
 Recent files: JSON at `app_config_dir/recent.json`. `merge_recent()` is the pure
 list transform (move-to-front, dedupe, cap `MAX_RECENT = 10`) — unit-tested.
@@ -68,12 +71,15 @@ Window / lifecycle (desktop-only):
 - **CloseRequested → `api.prevent_close()` + `window.hide()`** — red-button close hides
   the window instead of quitting. The app stays alive in the Dock.
 - **`RunEvent::Reopen`** (macOS Dock-icon click) → `window.show()` + focus.
+- **`RunEvent::ExitRequested`** — guards `Cmd+Q` / menu quit: if `code` is None, not force-confirmed,
+  and `QuitGuard.dirty`, calls `api.prevent_exit()`, shows the window, emits `confirm-quit`. The
+  frontend confirms then calls `quit_app` (sets force → `exit`).
 - **`RunEvent::Opened`** — macOS Open-with paths; `file://` URL → path → dispatch.
 - **single-instance** (registered FIRST) — second launch forwards markdown argv.
 - **`dispatch_opened_file`** — caches in `PendingFile`, emits `file-opened`, shows+focuses.
 
-Real quit still goes through `Cmd+Q` / the menu (`ExitRequested`), which bypasses
-`CloseRequested` — so it is **not** dirty-guarded (see FUTURE.md).
+Real quit goes through `Cmd+Q` / the menu (`ExitRequested`) and **is** dirty-guarded via the
+`confirm-quit` round-trip above.
 
 ### Frontend — `src/App.tsx`
 
@@ -91,13 +97,24 @@ Theme lives in `ThemeProvider` (context), consumed via `useTheme()`.
   mounted, then `window.print()` (the `@media print` stylesheet shows only the preview).
 - **Menu events** wired to the same handlers the navbar buttons use.
 - **External-mod detection**: on window `focus`, re-stat the file and flag a reload notice.
-- View mode + theme persisted to `localStorage` (`md-view`, `md-theme`).
+- Persistence in `localStorage`: theme (`md-theme`), settings (`md-settings` = font size +
+  default view). The live view mode is session-only; it resets to the default view each launch.
 - All Tauri calls try/catch-guarded so the app still runs in browser/jsdom.
+
+### Settings
+
+`settings.ts` is a tiny `useSyncExternalStore` store (no provider) holding `fontSize` and
+`defaultView`, persisted to `localStorage["md-settings"]`. `defaultView` defaults to **preview**
+and seeds the initial `viewMode` (and applies live when changed). `fontSize` drives editor +
+preview through the `--app-font-size` CSS variable. Theme stays in `ThemeProvider`; the Settings
+modal just relocates its control. `SettingsModal` is opened from the ⚙ toolbar button or
+**Settings…** (`Cmd+,`).
 
 ### Components
 
 - **`Navbar`** — toolbar: New/Open/Save/PDF, document name + dirty dot, view-mode
-  segmented control, theme toggle. Every action mirrors a native-menu item.
+  segmented control, **⚙ settings button**. Every action mirrors a native-menu item.
+- **`SettingsModal`** — theme / font-size / default-view dialog; backdrop + × + Escape close.
 - **`SplitView`** — `viewMode` switch: split (draggable, ratio persisted via
   `autoSaveId="md-split"`), editor-only, or preview-only.
 - **`EditorPane`** — CodeMirror 6; theme-aware (`oneDark` vs light); 4-space tabs,
@@ -116,11 +133,13 @@ Theme lives in `ThemeProvider` (context), consumed via `useTheme()`.
 - Open via drag-drop, **File → Open** (`Cmd+O`), or Finder **Open With** (cold + running).
 - **Open Recent** (last 10, persisted).
 - Edit (CodeMirror 6) with live GFM preview (tables, task lists, strikethrough, code highlight).
-- **View modes**: split / editor / preview (`Cmd+1/2/3`).
-- **Light/dark theme** (`Cmd+Shift+L`), persisted.
+- **View modes**: split / editor / preview (`Cmd+1/2/3`); default view configurable (preview).
+- **Settings** (`Cmd+,` / ⚙): theme, font size (10–24px), default view mode.
+- **Light/dark theme** (`Cmd+Shift+L` or Settings), persisted.
 - **Print to PDF** (`Cmd+P`) via the system print dialog on the rendered preview.
 - Save / Save-As (`Cmd+S`); dirty `●` marker; discard-confirm on load-over-dirty.
-- **Hide-on-close**, re-show on Dock click; `Cmd+Q` quits.
+- **Hide-on-close**, re-show on Dock click; **`Cmd+Q` quit is dirty-guarded**.
+- **Cold launch < 2s** (preview-default + lean bundle; measured ~0.5–1.2s).
 - External links → browser; external-modification reload notice; error banner.
 
 ---
@@ -145,8 +164,12 @@ Theme lives in `ThemeProvider` (context), consumed via `useTheme()`.
 - `PreviewPane.test.tsx` — heading, GFM list/table, inline code, **HTML-escape XSS guard**.
 - `fileio.test.tsx` — `file-opened` load (asserts within the **preview** pane, since the
   editor source also contains the text), Cmd+S save, Save-As fallback, read-fail banner.
-- `Navbar.test.tsx` — file-name/dirty, action handlers, active view + change, theme toggle.
+- `Navbar.test.tsx` — file-name/dirty, action handlers, active view + change, settings button.
 - `theme.test.tsx` — default dark, toggle→light + `data-theme` + localStorage, restore, style injection.
+- `settings.test.tsx` — store defaults/clamp/validate/persist; `SettingsModal` controls + close.
+- `App.test.tsx` also covers preview-default, switch-to-split, and opening the settings modal.
+
+Frontend totals **34 tests / 7 files**.
 
 `src/test/setup.ts` stubs `ResizeObserver` and replaces the broken Node test-runner
 `localStorage` with an in-memory `Storage`.

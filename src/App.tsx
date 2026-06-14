@@ -9,23 +9,13 @@ import EditorPane from "./components/EditorPane";
 import PreviewPane from "./components/PreviewPane";
 import ErrorBanner from "./components/ErrorBanner";
 import Navbar, { type ViewMode } from "./components/Navbar";
+import SettingsModal from "./components/SettingsModal";
 import { useTheme } from "./theme";
+import { useSettings, getSettings } from "./settings";
 
 function basename(path: string): string {
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || path;
-}
-
-const VIEW_KEY = "md-view";
-
-function readStoredView(): ViewMode {
-  try {
-    const v = localStorage.getItem(VIEW_KEY);
-    if (v === "split" || v === "editor" || v === "preview") return v;
-  } catch {
-    // ignore
-  }
-  return "split";
 }
 
 function App() {
@@ -34,8 +24,11 @@ function App() {
   const [dirty, setDirty] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [diskChanged, setDiskChanged] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(readStoredView);
-  const { theme, toggle: toggleTheme } = useTheme();
+  // Initial view comes from the saved "default view" setting (preview by default).
+  const [viewMode, setViewMode] = useState<ViewMode>(() => getSettings().defaultView);
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const { toggle: toggleTheme } = useTheme();
+  const settings = useSettings();
 
   // Preview lags the editor by a frame so fast typing doesn't re-render the
   // (relatively expensive) markdown tree on every keystroke.
@@ -58,13 +51,17 @@ function App() {
   viewModeRef.current = viewMode;
   toggleThemeRef.current = toggleTheme;
 
+  // Apply the configured default view live (e.g. changed in Settings) and adopt
+  // it on mount. Manual navbar/menu toggles don't change the setting, so they
+  // aren't overridden.
   useEffect(() => {
-    try {
-      localStorage.setItem(VIEW_KEY, viewMode);
-    } catch {
-      // ignore
-    }
-  }, [viewMode]);
+    setViewMode(settings.defaultView);
+  }, [settings.defaultView]);
+
+  // Drive editor + preview font size from the setting via a CSS variable.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--app-font-size", `${settings.fontSize}px`);
+  }, [settings.fontSize]);
 
   function handleChange(next: string) {
     setContent(next);
@@ -193,16 +190,24 @@ function App() {
   const printToPdfRef = useRef(printToPdf);
   printToPdfRef.current = printToPdf;
 
-  // Cmd/Ctrl+S → save. (Other shortcuts are owned by the native menu.)
+  // Cmd/Ctrl+S → save; Escape closes the settings modal. (Other shortcuts are
+  // owned by the native menu.)
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         saveRef.current();
+      } else if (e.key === "Escape") {
+        setSettingsOpen(false);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Signal the backend that the UI has mounted (for opt-in launch timing).
+  useEffect(() => {
+    void invoke("report_ready").catch(() => {});
   }, []);
 
   // Webview drag-and-drop: open the first dropped file.
@@ -268,6 +273,7 @@ function App() {
         unlisteners.push(await listen("menu-save", () => saveRef.current()));
         unlisteners.push(await listen("menu-print", () => printToPdfRef.current()));
         unlisteners.push(await listen("menu-theme", () => toggleThemeRef.current()));
+        unlisteners.push(await listen("menu-settings", () => setSettingsOpen(true)));
         unlisteners.push(
           await listen<string>("menu-view", (e) => {
             const m = e.payload;
@@ -340,14 +346,14 @@ function App() {
         fileName={fileName}
         dirty={dirty}
         viewMode={viewMode}
-        theme={theme}
         onNew={newDoc}
         onOpen={openFromDialog}
         onSave={save}
         onPrint={printToPdf}
         onViewChange={setViewMode}
-        onToggleTheme={toggleTheme}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       {diskChanged && (
         <ErrorBanner
           message="This file changed on disk."

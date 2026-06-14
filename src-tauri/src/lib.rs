@@ -1,5 +1,10 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Instant;
+
+/// Captured at the top of `run()` to measure cold-launch time. Opt-in via the
+/// `MD_LAUNCH_TIMING` env var so it is a no-op for normal users.
+static LAUNCH_START: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
 
 #[cfg(desktop)]
 use tauri::Emitter;
@@ -55,6 +60,17 @@ fn take_pending_file(state: tauri::State<'_, PendingFile>) -> Vec<String> {
 #[tauri::command]
 fn set_dirty(state: tauri::State<'_, QuitGuard>, dirty: bool) {
     state.dirty.store(dirty, Ordering::Relaxed);
+}
+
+/// Called once when the frontend has mounted. Prints cold-launch time when
+/// `MD_LAUNCH_TIMING` is set; otherwise a no-op.
+#[tauri::command]
+fn report_ready() {
+    if std::env::var_os("MD_LAUNCH_TIMING").is_some() {
+        if let Some(start) = LAUNCH_START.get() {
+            eprintln!("[launch] frontend ready in {:.2?}", start.elapsed());
+        }
+    }
 }
 
 /// Force-quit, bypassing the unsaved-changes guard. Called by the frontend after
@@ -171,9 +187,15 @@ fn build_app_menu<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     recents: &[String],
 ) -> tauri::Result<Menu<R>> {
+    let prefs_item = MenuItemBuilder::with_id("settings", "Settings…")
+        .accelerator("CmdOrCtrl+,")
+        .build(app)?;
+
     // App menu (macOS shows the product name as the title).
     let app_menu = SubmenuBuilder::new(app, "Markdown")
         .about(None)
+        .separator()
+        .item(&prefs_item)
         .separator()
         .services()
         .separator()
@@ -280,7 +302,7 @@ fn rebuild_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>, recents: &[String]
 #[cfg(desktop)]
 fn handle_menu_event<R: tauri::Runtime>(app: &tauri::AppHandle<R>, id: &str) {
     match id {
-        "new" | "open" | "save" | "print" => {
+        "new" | "open" | "save" | "print" | "settings" => {
             let _ = app.emit(&format!("menu-{id}"), ());
         }
         "view-split" => {
@@ -350,6 +372,7 @@ fn dispatch_opened_file<R: tauri::Runtime>(app: &tauri::AppHandle<R>, path: Stri
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = LAUNCH_START.set(Instant::now());
     let mut builder = tauri::Builder::default();
 
     // single-instance must be the FIRST plugin registered. On a second launch
@@ -380,7 +403,8 @@ pub fn run() {
             get_recent_files,
             clear_recent_files,
             set_dirty,
-            quit_app
+            quit_app,
+            report_ready
         ])
         .setup(|app| {
             // Install the menu once at startup, seeded with the saved recents.

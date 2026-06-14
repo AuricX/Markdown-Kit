@@ -14,11 +14,12 @@ Tauri v2 + React + TypeScript. macOS.
   line numbers, line wrapping).
 - Live GFM preview: tables, task lists, strikethrough, syntax-highlighted code blocks.
 - **View modes** — split, editor-only, preview-only (`Cmd+1/2/3` or the toolbar).
-- **Light / dark theme** toggle (`Cmd+Shift+L`), persisted; swaps editor + code themes.
+- **Settings** (`Cmd+,` or the ⚙ button) — theme, font size (10–24px), and the default view mode.
+- **Light / dark theme** toggle (`Cmd+Shift+L` or Settings), persisted; swaps editor + code themes.
 - **Print to PDF** (`Cmd+P`) — prints the rendered preview via the system print dialog.
 - Save with `Cmd+S` (`Save As…` dialog when the document has no path yet).
 - **Closing the window hides it** (app stays in the Dock); re-opens on Dock click.
-  `Cmd+Q` quits for real.
+  `Cmd+Q` quits — and is **guarded** when there are unsaved changes.
 - External links open in the default browser; preview escapes raw HTML (no script injection).
 - Detects when the open file changes on disk and offers to reload.
 

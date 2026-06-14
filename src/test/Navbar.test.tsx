@@ -9,14 +9,13 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
     onSave: vi.fn(),
     onPrint: vi.fn(),
     onViewChange: vi.fn(),
-    onToggleTheme: vi.fn(),
+    onOpenSettings: vi.fn(),
   };
   render(
     <Navbar
       fileName="note.md"
       dirty={false}
       viewMode={"split" as ViewMode}
-      theme="dark"
       {...handlers}
       {...overrides}
     />,
@@ -57,10 +56,9 @@ describe("Navbar", () => {
     expect(h.onViewChange).toHaveBeenCalledWith("preview");
   });
 
-  it("toggles theme and reflects the target theme in its label", () => {
-    const h = renderNavbar({ theme: "dark" });
-    const btn = screen.getByRole("button", { name: /Switch to light theme/ });
-    fireEvent.click(btn);
-    expect(h.onToggleTheme).toHaveBeenCalledOnce();
+  it("opens settings on gear click", () => {
+    const h = renderNavbar();
+    fireEvent.click(screen.getByRole("button", { name: "Open settings" }));
+    expect(h.onOpenSettings).toHaveBeenCalledOnce();
   });
 });

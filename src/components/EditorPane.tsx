@@ -16,11 +16,13 @@ const MONO_STACK =
   "'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace";
 
 // VSCode-like: 4-space indentation inserted on Tab, mono font, full height.
+// Font size is driven by the `--app-font-size` CSS variable (set from Settings),
+// with a sensible fallback when it is unset (e.g. component-level tests).
 const editorTheme = EditorView.theme({
   "&": {
     height: "100%",
     fontFamily: MONO_STACK,
-    fontSize: "13px",
+    fontSize: "var(--app-font-size, 13px)",
   },
   ".cm-content": {
     fontFamily: MONO_STACK,

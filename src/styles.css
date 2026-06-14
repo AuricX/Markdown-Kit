@@ -20,6 +20,9 @@
     Helvetica, Arial, sans-serif;
   --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
 
+  /* Editor + preview font size, overridden from Settings. */
+  --app-font-size: 14px;
+
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.5;
@@ -130,8 +133,8 @@ body {
   background-color: var(--btn-hover);
 }
 
-.navbar-theme {
-  font-size: 14px;
+.navbar-settings {
+  font-size: 15px;
   min-width: 28px;
 }
 
@@ -164,6 +167,102 @@ body {
 .navbar-seg-btn.is-active {
   background-color: var(--accent);
   color: #ffffff;
+}
+
+/* -------------------------------------------------------- Settings modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background-color: var(--bg-elevated);
+  color: var(--fg);
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--fg-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--fg);
+}
+
+.modal-body {
+  padding: 8px 14px 14px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-label {
+  font-size: 13px;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.setting-toggle,
+select.setting-control {
+  background-color: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.setting-value {
+  min-width: 34px;
+  text-align: right;
+  color: var(--fg-muted);
 }
 
 /* ---------------------------------------------------------- Error banner */
@@ -274,7 +373,7 @@ body {
   padding: 16px 24px;
   color: var(--fg);
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: var(--app-font-size, 14px);
   line-height: 1.6;
   word-wrap: break-word;
 }
@@ -420,7 +519,8 @@ body {
   .navbar,
   .error-banner,
   .split-handle,
-  .editor-pane {
+  .editor-pane,
+  .modal-overlay {
     display: none !important;
   }
 

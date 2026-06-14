@@ -1,7 +1,7 @@
 # FUTURE.md — Future Considerations & Backlog
 
 Checklist of not-yet-built features, hardening, and known gaps for the Markdown Viewer / Editor.
-Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batch).
+Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batches).
 
 ---
 
@@ -12,8 +12,9 @@ Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batch).
 - [x] **Light/dark theme toggle** — `Cmd+Shift+L`; swaps editor theme + injected hljs stylesheet; persisted.
 - [x] **New / empty document command** — File → New (`Cmd+N`), dirty-guarded.
 - [x] **Native menu bar** — App / File / Edit / View / Window submenus.
-- [ ] **Hide-on-close: also offer real quit guard** — red-button now hides; but `Cmd+Q` quit is NOT
-      dirty-guarded (unsaved edits lost on quit). Needs an `ExitRequested` intercept + async confirm.
+- [x] **Settings dialog** — `Cmd+,` or the ⚙ toolbar button; theme, font size, default view mode.
+- [x] **Quit-while-dirty guard** — `Cmd+Q` / menu quit now intercepts `ExitRequested`, mirrors the
+      dirty flag into Rust (`QuitGuard`), and round-trips a `confirm-quit` prompt before exiting.
 - [ ] **Multiple tabs / documents** — single-document app today; one file at a time.
 - [ ] **Scroll-sync** — editor ‖ preview synced scrolling.
 - [ ] **Find / replace** in editor (CodeMirror search extension not wired).
@@ -26,8 +27,9 @@ Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batch).
 - [x] **Persist split ratio** — `autoSaveId="md-split"` on the PanelGroup.
 - [x] **External link handling** — http/https links open in the browser via `opener.openUrl`.
 - [x] **Debounced preview** — `useDeferredValue` keeps typing smooth on large docs.
+- [x] **Configurable font size** — Settings slider (10–24px) drives editor + preview via a CSS var.
 - [ ] **Vertical (stacked) split option** — currently horizontal-only.
-- [ ] **Configurable tab size / wrap / font** — all hardcoded (4-space, wrap on, 13px mono).
+- [ ] **Configurable tab size / wrap** — still hardcoded (4-space, wrap on); font size is done.
 - [ ] **Image rendering** — verify relative-path images in preview resolve (Tauri asset protocol).
 
 ## Robustness / correctness
@@ -48,6 +50,18 @@ Ordered roughly by value/effort. `[x]` = shipped (2026-06-14 batch).
       the trust boundary if scope grows (e.g. remote content driving file writes).
 - [ ] **Tighten CSP further** — `style-src` still needs `'unsafe-inline'` for CodeMirror + injected hljs;
       revisit if those can move to nonce/hashed styles.
+
+## CLI
+
+- [ ] **Run the app from the CLI** — a `markdown [file.md]` invocation that launches the app and
+      opens the given file (and `markdown -` / stdin for piped content). Implementation notes:
+  - macOS app bundles aren't on `$PATH`; add a thin `markdown` shim (symlink/script in
+    `/usr/local/bin`) that calls `open -a Markdown --args <abspath>`, or ship a CLI binary.
+  - File path already flows through `dispatch_opened_file` → reuse it; resolve relative paths to
+    absolute before handing off (cwd is lost across `open`).
+  - Single-instance already forwards argv to a running app, so `markdown x.md` works whether or not
+    the app is already open.
+  - Consider an `install-cli` action (writes the shim) and a `--version` / `--help` flag.
 
 ## Platform / distribution
 

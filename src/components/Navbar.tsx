@@ -1,18 +1,15 @@
-import type { Theme } from "../theme";
-
 export type ViewMode = "split" | "editor" | "preview";
 
 interface NavbarProps {
   fileName: string;
   dirty: boolean;
   viewMode: ViewMode;
-  theme: Theme;
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
   onPrint: () => void;
   onViewChange: (mode: ViewMode) => void;
-  onToggleTheme: () => void;
+  onOpenSettings: () => void;
 }
 
 const VIEW_OPTIONS: { mode: ViewMode; label: string; title: string }[] = [
@@ -30,13 +27,12 @@ export default function Navbar({
   fileName,
   dirty,
   viewMode,
-  theme,
   onNew,
   onOpen,
   onSave,
   onPrint,
   onViewChange,
-  onToggleTheme,
+  onOpenSettings,
 }: NavbarProps) {
   return (
     <div className="navbar" role="toolbar" aria-label="Main toolbar">
@@ -77,12 +73,12 @@ export default function Navbar({
         </div>
         <button
           type="button"
-          className="navbar-btn navbar-theme"
-          onClick={onToggleTheme}
-          title="Toggle light/dark (⌘⇧L)"
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          className="navbar-btn navbar-settings"
+          onClick={onOpenSettings}
+          title="Settings (⌘,)"
+          aria-label="Open settings"
         >
-          {theme === "dark" ? "☀︎" : "☾"}
+          ⚙
         </button>
       </div>
     </div>
