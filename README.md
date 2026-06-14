@@ -1,4 +1,4 @@
-# Markdown
+# Markdown Kit
 
 A fast, native **Markdown viewer and editor** for macOS. A CodeMirror 6 editor on
 the left, a live GitHub-Flavored-Markdown preview on the right, in a resizable,
