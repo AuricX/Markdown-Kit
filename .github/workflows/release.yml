@@ -9,6 +9,8 @@ name: Release
 # Required repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/markdown-kit.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  the key password (empty string if none)
+#   HOMEBREW_TAP_TOKEN                  PAT with Contents:write on AuricX/homebrew-tap
+#                                       (only needed for the update-cask job)
 on:
   push:
     tags:
@@ -50,3 +52,34 @@ jobs:
           prerelease: false
           # Universal binary → one .dmg + one .app.tar.gz for Intel and Apple Silicon.
           args: --target universal-apple-darwin
+
+  # Bump the Homebrew cask (version + sha256) in AuricX/homebrew-tap to point at
+  # the release just published. Skipped automatically if HOMEBREW_TAP_TOKEN is unset.
+  update-cask:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update cask in tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set — skipping cask update."
+            exit 0
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          DMG="Markdown.Kit_${VERSION}_universal.dmg"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}/${DMG}"
+          echo "Fetching $URL"
+          curl -fsSL -o "$DMG" "$URL"
+          SHA="$(sha256sum "$DMG" | cut -d' ' -f1)"
+          echo "sha256=$SHA"
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/AuricX/homebrew-tap.git" tap
+          cd tap
+          sed -i -E "s/^  version \".*\"/  version \"${VERSION}\"/" Casks/markdown-kit.rb
+          sed -i -E "s/^  sha256 \".*\"/  sha256 \"${SHA}\"/" Casks/markdown-kit.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update markdown-kit to ${VERSION}"
+          git push
