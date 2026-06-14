@@ -1,4 +1,42 @@
-node_modules
-dist
-src-tauri/target
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# OS
 .DS_Store
+Thumbs.db
+.trashed-*
+
+# Dependencies
+node_modules
+
+# Build
+dist
+docs
+build/
+out/
+
+# Rust/Cargo
+src-tauri/target
+.cargo/
+Cargo.lock
+
+# TypeScript
+*.tsbuildinfo
