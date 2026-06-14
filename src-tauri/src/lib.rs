@@ -387,9 +387,13 @@ pub fn run() {
                 dispatch_opened_file(app, path.clone());
             }
         }));
+        // Auto-update via GitHub Releases (desktop-only; the updater crate has no
+        // mobile support). The frontend drives the check/prompt/install flow.
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
     builder
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(PendingFile::default())

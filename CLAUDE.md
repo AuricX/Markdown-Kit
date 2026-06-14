@@ -10,7 +10,7 @@ menu bar. **Tauri v2 + React 19 + TypeScript. macOS-targeted.**
 
 | Layer    | Tech                                                                          |
 | -------- | ----------------------------------------------------------------------------- |
-| Shell    | Tauri v2 (Rust), single-instance, dialog + opener plugins, native menu        |
+| Shell    | Tauri v2 (Rust), single-instance, dialog + opener + updater + process, native menu |
 | Frontend | React 19, TypeScript, Vite 8                                                   |
 | Editor   | CodeMirror 6 (`@uiw/react-codemirror`), `lang-markdown`, One Dark / light     |
 | Preview  | `react-markdown` + `remark-gfm` + `rehype-highlight` (highlight.js)           |
@@ -141,6 +141,13 @@ modal just relocates its control. `SettingsModal` is opened from the ⚙ toolbar
 - **Hide-on-close**, re-show on Dock click; **`Cmd+Q` quit is dirty-guarded**.
 - **Cold launch < 2s** (preview-default + lean bundle; measured ~0.5–1.2s).
 - External links → browser; external-modification reload notice; error banner.
+- **Auto-update** via GitHub Releases: on launch the frontend (`updater.ts`) checks
+  the updater endpoint, prompts, then downloads + installs the signed bundle and
+  relaunches. Releases published by `.github/workflows/release.yml` (tauri-action) on
+  `v*` tags — ships `.dmg` (manual download) + `.app.tar.gz`/`.sig`/`latest.json`
+  (updater). Signing key pubkey in `tauri.conf.json`; private key is a repo secret.
+- **Recent files persist across reinstall** — stored in `app_config_dir` (outside the
+  `.app` bundle), survive as long as the bundle identifier is unchanged.
 
 ---
 
@@ -151,7 +158,8 @@ modal just relocates its control. `SettingsModal` is opened from the ⚙ toolbar
   asset/http(s); `style-src 'self' 'unsafe-inline'` (CodeMirror + injected hljs);
   `connect-src 'self' ipc:`.
 - **Capabilities** (`capabilities/default.json`): core/event defaults, window
-  set-title/set-focus/hide/show, opener default + `open-url`, dialog default.
+  set-title/set-focus/hide/show, opener default + `open-url`, dialog default,
+  `updater:default`, `process:allow-restart`.
 
 ---
 
@@ -200,7 +208,8 @@ pnpm tauri build    # → src-tauri/target/release/bundle/macos/Markdown Kit.app
 ## Version-pinning constraint
 
 Rust crates and `@tauri-apps/*` JS packages must stay same major/minor (build pre-flight
-enforces). Pinned: tauri **2.6** / dialog **2.3** / opener **2.4**. Cargo deps use exact `=`.
+enforces). Pinned: tauri **2.11** / dialog **2.7** / opener **2.5** / process **2.3** /
+updater **2.10** / single-instance **2.4**. Cargo deps use exact `=`. Requires rustc **≥1.88**.
 
 ---
 

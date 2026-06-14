@@ -12,6 +12,7 @@ import Navbar, { type ViewMode } from "./components/Navbar";
 import SettingsModal from "./components/SettingsModal";
 import { useTheme } from "./theme";
 import { useSettings, getSettings } from "./settings";
+import { checkForUpdates } from "./updater";
 
 function basename(path: string): string {
   const parts = path.split(/[\\/]/);
@@ -208,6 +209,11 @@ function App() {
   // Signal the backend that the UI has mounted (for opt-in launch timing).
   useEffect(() => {
     void invoke("report_ready").catch(() => {});
+  }, []);
+
+  // Check GitHub Releases for an update once on launch (best-effort, prompts).
+  useEffect(() => {
+    void checkForUpdates();
   }, []);
 
   // Webview drag-and-drop: open the first dropped file.

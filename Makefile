@@ -6,7 +6,7 @@ BUNDLE_DIR := src-tauri/target/release/bundle/dmg
 BUILDS_DIR := builds
 VERSION    := $(shell node -p "require('./src-tauri/tauri.conf.json').version")
 
-.PHONY: help dev test build clean
+.PHONY: help dev test build clean bump release
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -30,3 +30,18 @@ build: ## Release build → builds/$(APP)-<version>.dmg (overwrites same version
 
 clean: ## Remove all archived builds
 	rm -rf "$(BUILDS_DIR)"
+
+bump: ## Set version in all manifests, e.g. make bump VERSION=0.1.1
+	@test -n "$(VERSION)" || { echo "usage: make bump VERSION=x.y.z" >&2; exit 1; }
+	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || { echo "error: VERSION must be semver (x.y.z)" >&2; exit 1; }
+	@sed -i '' -E 's/"version": "[0-9]+\.[0-9]+\.[0-9]+"/"version": "$(VERSION)"/' package.json src-tauri/tauri.conf.json
+	@sed -i '' -E 's/^version = "[0-9]+\.[0-9]+\.[0-9]+"/version = "$(VERSION)"/' src-tauri/Cargo.toml
+	@cd src-tauri && cargo update -p markdown-kit >/dev/null 2>&1 || true
+	@echo "bumped to $(VERSION)"
+
+release: bump ## Bump + commit + tag + push, e.g. make release VERSION=0.1.1 (triggers CI release)
+	@git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+	@git commit -m "chore: release v$(VERSION)"
+	@git tag "v$(VERSION)"
+	@git push && git push origin "v$(VERSION)"
+	@echo "pushed v$(VERSION) — GitHub Actions is building the release"
