@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import SplitView from "./components/SplitView";
 import EditorPane from "./components/EditorPane";
 import PreviewPane from "./components/PreviewPane";
@@ -14,18 +13,15 @@ import SettingsModal from "./components/SettingsModal";
 import { useTheme } from "./theme";
 import { useSettings, getSettings } from "./settings";
 import { checkForUpdates } from "./updater";
-
-function basename(path: string): string {
-  const parts = path.split(/[\\/]/);
-  return parts[parts.length - 1] || path;
-}
+import { useDocument, basename } from "./hooks/useDocument";
 
 function App() {
-  const [filePath, setFilePath] = useState<string | null>(null);
-  const [content, setContent] = useState<string>("");
-  const [dirty, setDirty] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [diskChanged, setDiskChanged] = useState<boolean>(false);
+  const {
+    filePath, content, dirty, error, diskChanged,
+    setError, setDiskChanged,
+    onChange, newDoc, openFromDialog, save, loadFile, checkDisk,
+  } = useDocument();
+
   // Initial view comes from the saved "default view" setting (preview by default).
   const [viewMode, setViewMode] = useState<ViewMode>(() => getSettings().defaultView);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
@@ -39,19 +35,23 @@ function App() {
   // The mount-time OS listeners (drag-drop / file-opened / menu / keydown) are
   // subscribed once, so their closures would capture stale state. Mirror live
   // values into refs that those handlers read instead.
-  const filePathRef = useRef(filePath);
-  const contentRef = useRef(content);
-  const dirtyRef = useRef(dirty);
   const viewModeRef = useRef(viewMode);
-  const lastMtimeRef = useRef<number | null>(null);
   // toggleTheme comes from context (stable per render); mirror via ref so the
   // once-subscribed menu-event listener always calls the current one.
   const toggleThemeRef = useRef(toggleTheme);
-  filePathRef.current = filePath;
-  contentRef.current = content;
-  dirtyRef.current = dirty;
   viewModeRef.current = viewMode;
   toggleThemeRef.current = toggleTheme;
+
+  // Ref-mirrors for hook functions used by once-subscribed OS/keyboard listeners.
+  // These stay here until Task 6 moves the OS effects into useOsIntegration.
+  const loadFileRef = useRef(loadFile);
+  const newDocRef = useRef(newDoc);
+  const openFromDialogRef = useRef(openFromDialog);
+  const saveRef = useRef(save);
+  loadFileRef.current = loadFile;
+  newDocRef.current = newDoc;
+  openFromDialogRef.current = openFromDialog;
+  saveRef.current = save;
 
   // Apply the configured default view live (e.g. changed in Settings) and adopt
   // it on mount. Manual navbar/menu toggles don't change the setting, so they
@@ -64,112 +64,6 @@ function App() {
   useEffect(() => {
     document.documentElement.style.setProperty("--app-font-size", `${settings.fontSize}px`);
   }, [settings.fontSize]);
-
-  function handleChange(next: string) {
-    setContent(next);
-    setDirty(true);
-  }
-
-  // Record the on-disk mtime of the current file so we can later detect external
-  // edits. Best-effort; silently no-ops outside Tauri.
-  async function rememberMtime(path: string) {
-    try {
-      lastMtimeRef.current = (await invoke("file_mtime", { path })) as number;
-    } catch {
-      lastMtimeRef.current = null;
-    }
-  }
-
-  // Load a file into the editor, prompting if there are unsaved changes.
-  async function loadFile(path: string) {
-    if (dirtyRef.current && !window.confirm("Discard unsaved changes?")) {
-      return;
-    }
-    try {
-      const text = (await invoke("read_md", { path })) as string;
-      setContent(text);
-      setFilePath(path);
-      setDirty(false);
-      setDiskChanged(false);
-      setError(null);
-      void rememberMtime(path);
-      // Record in the persisted "Open Recent" list (rebuilds the native menu).
-      try {
-        await invoke("add_recent_file", { path });
-      } catch {
-        // Not inside Tauri — recent-files tracking unavailable.
-      }
-    } catch (e) {
-      setError(`Failed to open file: ${String(e)}`);
-    }
-  }
-  const loadFileRef = useRef(loadFile);
-  loadFileRef.current = loadFile;
-
-  // New empty document (dirty-guarded).
-  function newDoc() {
-    if (dirtyRef.current && !window.confirm("Discard unsaved changes?")) {
-      return;
-    }
-    setContent("");
-    setFilePath(null);
-    setDirty(false);
-    setDiskChanged(false);
-    setError(null);
-    lastMtimeRef.current = null;
-  }
-  const newDocRef = useRef(newDoc);
-  newDocRef.current = newDoc;
-
-  // Open via the native file dialog.
-  async function openFromDialog() {
-    try {
-      const picked = await openDialog({
-        multiple: false,
-        filters: [{ name: "Markdown", extensions: ["md", "markdown", "mdx"] }],
-      });
-      if (typeof picked === "string") {
-        await loadFileRef.current(picked);
-      }
-    } catch (e) {
-      setError(`Open failed: ${String(e)}`);
-    }
-  }
-  const openFromDialogRef = useRef(openFromDialog);
-  openFromDialogRef.current = openFromDialog;
-
-  async function save() {
-    let path = filePathRef.current;
-    if (!path) {
-      // Save-As: ask the user where to write.
-      try {
-        path = await saveDialog({
-          filters: [{ name: "Markdown", extensions: ["md", "markdown", "mdx"] }],
-        });
-      } catch (e) {
-        setError(`Save failed: ${String(e)}`);
-        return;
-      }
-      if (!path) return; // user cancelled
-    }
-    try {
-      await invoke("save_md", { path, content: contentRef.current });
-      setFilePath(path);
-      setDirty(false);
-      setDiskChanged(false);
-      setError(null);
-      void rememberMtime(path);
-      try {
-        await invoke("add_recent_file", { path });
-      } catch {
-        // ignore outside Tauri
-      }
-    } catch (e) {
-      setError(`Save failed: ${String(e)}`);
-    }
-  }
-  const saveRef = useRef(save);
-  saveRef.current = save;
 
   // Print-to-PDF: print the rendered preview via the webview's print dialog
   // (the user picks "Save as PDF"). A print stylesheet hides everything but the
@@ -309,19 +203,9 @@ function App() {
   // Detect external modification: when the window regains focus, re-stat the
   // open file and flag a mismatch so the user can reload.
   useEffect(() => {
-    async function checkDisk() {
-      const path = filePathRef.current;
-      if (!path || lastMtimeRef.current == null) return;
-      try {
-        const mtime = (await invoke("file_mtime", { path })) as number;
-        if (mtime !== lastMtimeRef.current) setDiskChanged(true);
-      } catch {
-        // File gone or not in Tauri — ignore.
-      }
-    }
     window.addEventListener("focus", checkDisk);
     return () => window.removeEventListener("focus", checkDisk);
-  }, []);
+  }, [checkDisk]);
 
   // Mirror the dirty flag into the backend so the native quit (Cmd+Q / menu)
   // can guard against discarding unsaved changes.
@@ -372,7 +256,7 @@ function App() {
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <SplitView
         viewMode={viewMode}
-        left={<EditorPane value={content} onChange={handleChange} />}
+        left={<EditorPane value={content} onChange={onChange} />}
         right={<PreviewPane value={deferredContent} />}
       />
     </div>
