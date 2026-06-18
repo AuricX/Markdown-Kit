@@ -115,7 +115,7 @@ function App() {
   const fileName = filePath ? basename(filePath) : "Untitled";
 
   return (
-    <div className="app">
+    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
       <Toolbar
         fileName={fileName}
         dirty={dirty}

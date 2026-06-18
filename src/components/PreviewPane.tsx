@@ -38,7 +38,7 @@ export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) 
     >
       <div
         className={cn(
-          "markdown-body prose mx-auto max-w-3xl px-6 py-4",
+          "markdown-body prose mx-auto max-w-md px-6 py-4",
           resolvedTheme === "dark" && "prose-invert"
         )}
       >
