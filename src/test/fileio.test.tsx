@@ -63,3 +63,21 @@ test("read failure shows the error banner", async () => {
   listeners["file-opened"]({ payload: "/tmp/missing.md" });
   expect(await screen.findByRole("alert")).toHaveTextContent(/failed to open/i);
 });
+
+test("menu-save on Untitled triggers Save-As (menu wiring)", async () => {
+  saveDialog.mockResolvedValue(null);
+  invoke.mockResolvedValue(undefined);
+  renderApp();
+  await waitFor(() => expect(listeners["menu-save"]).toBeTypeOf("function"));
+  listeners["menu-save"]();
+  await waitFor(() => expect(saveDialog).toHaveBeenCalled());
+});
+
+test("menu-view switches the view (menu wiring)", async () => {
+  invoke.mockImplementation((c: string) =>
+    c === "take_pending_file" ? Promise.resolve([]) : Promise.resolve(undefined));
+  renderApp();
+  await waitFor(() => expect(listeners["menu-view"]).toBeTypeOf("function"));
+  listeners["menu-view"]({ payload: "editor" });
+  expect(await screen.findByLabelText(/markdown editor/i)).toBeInTheDocument();
+});

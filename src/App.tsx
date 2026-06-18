@@ -1,7 +1,5 @@
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import SplitView from "./components/SplitView";
 import EditorPane from "./components/EditorPane";
@@ -14,6 +12,7 @@ import { useTheme } from "./theme";
 import { useSettings, getSettings } from "./settings";
 import { checkForUpdates } from "./updater";
 import { useDocument, basename } from "./hooks/useDocument";
+import { useOsIntegration } from "./hooks/useOsIntegration";
 
 function App() {
   const {
@@ -32,27 +31,6 @@ function App() {
   // (relatively expensive) markdown tree on every keystroke.
   const deferredContent = useDeferredValue(content);
 
-  // The mount-time OS listeners (drag-drop / file-opened / menu / keydown) are
-  // subscribed once, so their closures would capture stale state. Mirror live
-  // values into refs that those handlers read instead.
-  const viewModeRef = useRef(viewMode);
-  // toggleTheme comes from context (stable per render); mirror via ref so the
-  // once-subscribed menu-event listener always calls the current one.
-  const toggleThemeRef = useRef(toggleTheme);
-  viewModeRef.current = viewMode;
-  toggleThemeRef.current = toggleTheme;
-
-  // Ref-mirrors for hook functions used by once-subscribed OS/keyboard listeners.
-  // These stay here until Task 6 moves the OS effects into useOsIntegration.
-  const loadFileRef = useRef(loadFile);
-  const newDocRef = useRef(newDoc);
-  const openFromDialogRef = useRef(openFromDialog);
-  const saveRef = useRef(save);
-  loadFileRef.current = loadFile;
-  newDocRef.current = newDoc;
-  openFromDialogRef.current = openFromDialog;
-  saveRef.current = save;
-
   // Apply the configured default view live (e.g. changed in Settings) and adopt
   // it on mount. Manual navbar/menu toggles don't change the setting, so they
   // aren't overridden.
@@ -69,8 +47,11 @@ function App() {
   // (the user picks "Save as PDF"). A print stylesheet hides everything but the
   // preview. Editor-only mode is briefly switched to split so the preview is
   // actually mounted to print.
+  //
+  // Reads `viewMode` directly from render scope — safe because useOsIntegration
+  // ref-mirrors `printToPdf`, so menu-print always invokes the current closure.
   function printToPdf() {
-    const restore = viewModeRef.current;
+    const restore = viewMode;
     if (restore === "editor") setViewMode("split");
     // Two rAFs: let React mount the preview and the browser paint before printing.
     requestAnimationFrame(() =>
@@ -83,23 +64,40 @@ function App() {
       })
     );
   }
-  const printToPdfRef = useRef(printToPdf);
-  printToPdfRef.current = printToPdf;
+
+  // Consolidate all OS-level listeners (drag-drop, file-opened, menu events,
+  // focus disk-check, dirty-mirror, confirm-quit) into a single hook.
+  useOsIntegration({
+    dirty,
+    loadFile,
+    newDoc,
+    openFromDialog,
+    save,
+    printToPdf,
+    toggleTheme,
+    openSettings: () => setSettingsOpen(true),
+    setViewMode,
+    checkDisk,
+  });
 
   // Cmd/Ctrl+S → save; Escape closes the settings modal. (Other shortcuts are
   // owned by the native menu.)
+  //
+  // Calls `save` directly — safe because useDocument's save reads its own
+  // internal refs (filePathRef/contentRef), so even the mount-time closure
+  // behaves correctly.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        saveRef.current();
+        save();
       } else if (e.key === "Escape") {
         setSettingsOpen(false);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [save]);
 
   // Signal the backend that the UI has mounted (for opt-in launch timing).
   useEffect(() => {
@@ -110,110 +108,6 @@ function App() {
   useEffect(() => {
     void checkForUpdates();
   }, []);
-
-  // Webview drag-and-drop: open the first dropped file.
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let active = true;
-    (async () => {
-      try {
-        const un = await getCurrentWebview().onDragDropEvent((event) => {
-          if (event.payload.type === "drop" && event.payload.paths.length > 0) {
-            loadFileRef.current(event.payload.paths[0]);
-          }
-        });
-        if (active) unlisten = un;
-        else un();
-      } catch {
-        // Not running inside Tauri — drag-drop is unavailable.
-      }
-    })();
-    return () => {
-      active = false;
-      unlisten?.();
-    };
-  }, []);
-
-  // Finder "Open with": live event + cold-start pending file.
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let active = true;
-    (async () => {
-      try {
-        const un = await listen<string>("file-opened", (e) => {
-          loadFileRef.current(e.payload);
-        });
-        if (active) unlisten = un;
-        else un();
-      } catch {
-        // Not running inside Tauri — file-opened events are unavailable.
-      }
-      try {
-        const paths = (await invoke("take_pending_file")) as string[];
-        if (paths.length > 0) {
-          loadFileRef.current(paths[paths.length - 1]);
-        }
-      } catch {
-        // Not running inside Tauri — no pending file to take.
-      }
-    })();
-    return () => {
-      active = false;
-      unlisten?.();
-    };
-  }, []);
-
-  // Native-menu events → the same handlers the navbar buttons use.
-  useEffect(() => {
-    const unlisteners: Array<() => void> = [];
-    let active = true;
-    (async () => {
-      try {
-        unlisteners.push(await listen("menu-new", () => newDocRef.current()));
-        unlisteners.push(await listen("menu-open", () => openFromDialogRef.current()));
-        unlisteners.push(await listen("menu-save", () => saveRef.current()));
-        unlisteners.push(await listen("menu-print", () => printToPdfRef.current()));
-        unlisteners.push(await listen("menu-theme", () => toggleThemeRef.current()));
-        unlisteners.push(await listen("menu-settings", () => setSettingsOpen(true)));
-        unlisteners.push(
-          await listen<string>("menu-view", (e) => {
-            const m = e.payload;
-            if (m === "split" || m === "editor" || m === "preview") setViewMode(m);
-          })
-        );
-        // Backend asks us to confirm a quit that would lose unsaved changes.
-        unlisteners.push(
-          await listen("confirm-quit", () => {
-            if (window.confirm("You have unsaved changes. Quit without saving?")) {
-              void invoke("quit_app").catch(() => {});
-            }
-          })
-        );
-      } catch {
-        // Not running inside Tauri — menu events unavailable.
-      }
-      if (!active) unlisteners.forEach((u) => u());
-    })();
-    return () => {
-      active = false;
-      unlisteners.forEach((u) => u());
-    };
-  }, []);
-
-  // Detect external modification: when the window regains focus, re-stat the
-  // open file and flag a mismatch so the user can reload.
-  useEffect(() => {
-    window.addEventListener("focus", checkDisk);
-    return () => window.removeEventListener("focus", checkDisk);
-  }, [checkDisk]);
-
-  // Mirror the dirty flag into the backend so the native quit (Cmd+Q / menu)
-  // can guard against discarding unsaved changes.
-  useEffect(() => {
-    void invoke("set_dirty", { dirty }).catch(() => {
-      // Not inside Tauri — quit guarding unavailable.
-    });
-  }, [dirty]);
 
   useEffect(() => {
     const name = filePath ? basename(filePath) : "Untitled";
