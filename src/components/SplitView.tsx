@@ -1,6 +1,6 @@
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { ReactNode } from "react";
-import type { ViewMode } from "./Navbar";
+import type { ViewMode } from "../settings";
 
 interface SplitViewProps {
   left: ReactNode;

@@ -1,6 +1,6 @@
 import { useTheme } from "../theme";
 import { useSettings, setSettings, FONT_MIN, FONT_MAX } from "../settings";
-import type { ViewMode } from "./Navbar";
+import type { ViewMode } from "../settings";
 
 interface SettingsModalProps {
   onClose: () => void;

@@ -1,17 +1,21 @@
 import { useSyncExternalStore } from "react";
-import type { ViewMode } from "./components/Navbar";
+
+export type ViewMode = "split" | "editor" | "preview";
+export type PreviewTheme = "match" | "light" | "dark";
 
 export interface Settings {
   /** Editor + preview font size in px. */
   fontSize: number;
   /** View mode the app opens in. */
   defaultView: ViewMode;
+  /** Preview theme axis, independent of app theme. "match" follows app theme. */
+  previewTheme: PreviewTheme;
 }
 
 const STORAGE_KEY = "md-settings";
 export const FONT_MIN = 10;
 export const FONT_MAX = 24;
-const DEFAULTS: Settings = { fontSize: 14, defaultView: "preview" };
+const DEFAULTS: Settings = { fontSize: 14, defaultView: "preview", previewTheme: "match" };
 
 function clampFont(n: unknown): number {
   return typeof n === "number" && Number.isFinite(n)
@@ -23,6 +27,10 @@ function isViewMode(v: unknown): v is ViewMode {
   return v === "split" || v === "editor" || v === "preview";
 }
 
+function isPreviewTheme(v: unknown): v is PreviewTheme {
+  return v === "match" || v === "light" || v === "dark";
+}
+
 function load(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -31,6 +39,7 @@ function load(): Settings {
       return {
         fontSize: clampFont(p.fontSize),
         defaultView: isViewMode(p.defaultView) ? p.defaultView : DEFAULTS.defaultView,
+        previewTheme: isPreviewTheme(p.previewTheme) ? p.previewTheme : DEFAULTS.previewTheme,
       };
     }
   } catch {
@@ -62,6 +71,7 @@ export function setSettings(patch: Partial<Settings>) {
   const next: Settings = {
     fontSize: patch.fontSize !== undefined ? clampFont(patch.fontSize) : state.fontSize,
     defaultView: isViewMode(patch.defaultView) ? patch.defaultView : state.defaultView,
+    previewTheme: isPreviewTheme(patch.previewTheme) ? patch.previewTheme : state.previewTheme,
   };
   state = next;
   persist();

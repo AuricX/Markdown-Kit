@@ -1,4 +1,4 @@
-export type ViewMode = "split" | "editor" | "preview";
+import type { ViewMode } from "../settings";
 
 interface NavbarProps {
   fileName: string;
