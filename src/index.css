@@ -1,0 +1,93 @@
+@import "tailwindcss";
+/* @plugin "@tailwindcss/typography"; — uncomment once @tailwindcss/typography is installed (requires network; not in pnpm store at task-1 time) */
+
+/* shadcn token bridge → Tailwind theme. Tokens are CSS vars set per data-theme. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* VSCode Dark+ */
+[data-theme="dark"] {
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+  --card: #252526;
+  --card-foreground: #d4d4d4;
+  --popover: #252526;
+  --popover-foreground: #d4d4d4;
+  --primary: #0e639c;
+  --primary-foreground: #ffffff;
+  --secondary: #2d2d30;
+  --secondary-foreground: #d4d4d4;
+  --muted: #2d2d30;
+  --muted-foreground: #858585;
+  --accent: #094771;
+  --accent-foreground: #ffffff;
+  --destructive: #5a1d1d;
+  --destructive-foreground: #f48771;
+  --border: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #007acc;
+}
+
+/* VSCode Light+ */
+[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #1e1e1e;
+  --card: #f3f3f3;
+  --card-foreground: #1e1e1e;
+  --popover: #ffffff;
+  --popover-foreground: #1e1e1e;
+  --primary: #005fb8;
+  --primary-foreground: #ffffff;
+  --secondary: #e7e7e7;
+  --secondary-foreground: #1e1e1e;
+  --muted: #ececec;
+  --muted-foreground: #6c6c6c;
+  --accent: #cfe5ff;
+  --accent-foreground: #00305c;
+  --destructive: #f2dede;
+  --destructive-foreground: #a31515;
+  --border: #e5e5e5;
+  --input: #cecece;
+  --ring: #005fb8;
+}
+
+/* Preview palette (independent axis; scoped by data-preview-theme on the prose container) */
+[data-preview-theme="dark"] {
+  --background: #0d1117;
+  --foreground: #c9d1d9;
+  --border: #30363d;
+}
+[data-preview-theme="light"] {
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --border: #d0d7de;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-size: var(--app-font-size, 14px);
+}
