@@ -17,18 +17,18 @@ interface SplitViewProps {
  */
 export default function SplitView({ left, right, viewMode }: SplitViewProps) {
   if (viewMode === "editor") {
-    return <div className="single-pane">{left}</div>;
+    return <div className="h-full min-h-0">{left}</div>;
   }
   if (viewMode === "preview") {
-    return <div className="single-pane">{right}</div>;
+    return <div className="h-full min-h-0">{right}</div>;
   }
   return (
-    <PanelGroup direction="horizontal" className="split-group" autoSaveId="md-split">
-      <Panel defaultSize={50} minSize={20} className="split-panel">
+    <PanelGroup direction="horizontal" className="h-full min-h-0" autoSaveId="md-split">
+      <Panel defaultSize={50} minSize={20} className="min-h-0">
         {left}
       </Panel>
-      <PanelResizeHandle className="split-handle" />
-      <Panel defaultSize={50} minSize={20} className="split-panel">
+      <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-ring data-[resize-handle-active]:bg-ring" />
+      <Panel defaultSize={50} minSize={20} className="min-h-0">
         {right}
       </Panel>
     </PanelGroup>

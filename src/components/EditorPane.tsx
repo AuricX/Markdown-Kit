@@ -48,7 +48,7 @@ const extensions = [
 export default function EditorPane({ value, onChange }: EditorPaneProps) {
   const { theme } = useTheme();
   return (
-    <div className="pane editor-pane" aria-label="Markdown editor">
+    <div className="h-full min-h-0 overflow-hidden bg-background" aria-label="Markdown editor">
       <CodeMirror
         value={value}
         onChange={onChange}
