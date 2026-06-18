@@ -1,6 +1,7 @@
 import { PanelLeft, Columns2, Eye } from "lucide-react";
 import type { ViewMode } from "@/settings";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const OPTIONS: { mode: ViewMode; label: string; title: string; Icon: typeof PanelLeft }[] = [
   { mode: "editor", label: "Editor only", title: "⌘2", Icon: PanelLeft },
@@ -17,21 +18,25 @@ export default function ViewModeSwitch({
 }) {
   return (
     <div role="group" aria-label="View mode" className="inline-flex rounded-md border border-border p-0.5">
-      {OPTIONS.map(({ mode, label, Icon }) => (
-        <button
-          key={mode}
-          type="button"
-          aria-label={label}
-          aria-pressed={value === mode}
-          onClick={() => onChange(mode)}
-          className={cn(
-            "inline-flex h-7 w-8 items-center justify-center rounded text-muted-foreground",
-            "hover:text-foreground",
-            value === mode && "bg-secondary text-foreground"
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </button>
+      {OPTIONS.map(({ mode, label, title, Icon }) => (
+        <Tooltip key={mode}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={label}
+              aria-pressed={value === mode}
+              onClick={() => onChange(mode)}
+              className={cn(
+                "inline-flex h-7 w-8 items-center justify-center rounded text-muted-foreground",
+                "hover:text-foreground",
+                value === mode && "bg-secondary text-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{label} <span className="ml-2 text-muted-foreground">{title}</span></TooltipContent>
+        </Tooltip>
       ))}
     </div>
   );
