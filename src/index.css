@@ -91,3 +91,31 @@ body {
   margin: 0;
   font-size: var(--app-font-size, 14px);
 }
+
+/* CodeMirror must fill its pane. */
+.cm-editor,
+.cm-scroller {
+  height: 100%;
+}
+
+/* hljs/prose interplay: let highlight.js own code-block colors inside prose. */
+.markdown-body pre code.hljs {
+  padding: 0;
+  background: transparent;
+}
+
+/* Print to PDF: show only the rendered preview. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-preview-theme],
+  [data-preview-theme] * {
+    visibility: visible;
+  }
+  [data-preview-theme] {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+  }
+}
