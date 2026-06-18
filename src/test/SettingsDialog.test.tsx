@@ -25,3 +25,8 @@ test("exposes the preview-theme control", async () => {
   render(<Harness />);
   expect(await screen.findByLabelText(/preview theme/i)).toBeInTheDocument();
 });
+
+test("exposes the default-view control", async () => {
+  render(<Harness />);
+  expect(await screen.findByLabelText(/default view/i)).toBeInTheDocument();
+});

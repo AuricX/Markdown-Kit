@@ -32,10 +32,12 @@ test("file action buttons fire their handlers", async () => {
   await userEvent.click(screen.getByRole("button", { name: /^new$/i }));
   await userEvent.click(screen.getByRole("button", { name: /^open$/i }));
   await userEvent.click(screen.getByRole("button", { name: /^save$/i }));
+  await userEvent.click(screen.getByRole("button", { name: /print/i }));
   await userEvent.click(screen.getByRole("button", { name: /settings/i }));
   expect(h.onNew).toHaveBeenCalled();
   expect(h.onOpen).toHaveBeenCalled();
   expect(h.onSave).toHaveBeenCalled();
+  expect(h.onPrint).toHaveBeenCalled();
   expect(h.onOpenSettings).toHaveBeenCalled();
 });
 

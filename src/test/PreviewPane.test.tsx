@@ -13,6 +13,9 @@ test("renders heading + GFM table + inline code", () => {
 test("escapes raw HTML (no rehype-raw)", () => {
   const { container } = render(<PreviewPane value={"<script>alert(1)</script>"} resolvedTheme="light" />);
   expect(container.querySelector("script")).toBeNull();
+  // react-markdown without rehype-raw renders the raw markup as visible escaped
+  // text (not dropped), so the literal characters must appear in the output.
+  expect(container).toHaveTextContent("<script>alert(1)</script>");
 });
 
 test("dark resolvedTheme applies prose-invert + data-preview-theme", () => {

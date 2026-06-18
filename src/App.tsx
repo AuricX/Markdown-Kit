@@ -83,9 +83,9 @@ function App() {
     checkDisk,
   });
 
-  // Cmd/Ctrl+S → save; Escape closes the settings modal. (Other shortcuts are
-  // owned by the native menu.) Uses the keyboard hook with ref-mirroring to avoid
-  // re-attaching the listener on every `save` change.
+  // Cmd/Ctrl+S → save. (Other shortcuts are owned by the native menu.) Uses the
+  // keyboard hook with ref-mirroring to avoid re-attaching the listener on every
+  // `save` change.
   useKeyboardShortcuts({ onSave: save });
 
   // Signal the backend that the UI has mounted (for opt-in launch timing).

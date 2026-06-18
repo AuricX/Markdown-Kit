@@ -24,7 +24,7 @@ function handleLinkClick(e: MouseEvent<HTMLAnchorElement>, href?: string) {
 /**
  * Rendered markdown preview (right pane). GFM (tables, task lists,
  * strikethrough) via remark-gfm; code-block highlighting via rehype-highlight.
- * The active highlight.js stylesheet is injected by ThemeProvider.
+ * The active highlight.js stylesheet is injected by usePreviewTheme, keyed on the resolved preview theme.
  *
  * SECURITY: raw HTML is intentionally NOT enabled (no rehype-raw). react-markdown
  * escapes HTML by default, protecting against <script> in adversarial .md files.
