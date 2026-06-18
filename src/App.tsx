@@ -4,7 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import SplitView from "./components/SplitView";
 import EditorPane from "./components/EditorPane";
 import PreviewPane from "./components/PreviewPane";
-import ErrorBanner from "./components/ErrorBanner";
+import Banner from "./components/Banner";
 import Toolbar from "./components/Toolbar";
 import type { ViewMode } from "./settings";
 import SettingsModal from "./components/SettingsModal";
@@ -129,14 +129,15 @@ function App() {
       />
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       {diskChanged && (
-        <ErrorBanner
+        <Banner
           message="This file changed on disk."
           actionLabel="Reload"
           onAction={() => filePath && loadFile(filePath)}
           onDismiss={() => setDiskChanged(false)}
+          variant="info"
         />
       )}
-      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+      {error && <Banner message={error} onDismiss={() => setError(null)} />}
       <SplitView
         viewMode={viewMode}
         left={<EditorPane value={content} onChange={onChange} />}
