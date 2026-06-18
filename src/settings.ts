@@ -27,7 +27,7 @@ function isViewMode(v: unknown): v is ViewMode {
   return v === "split" || v === "editor" || v === "preview";
 }
 
-function isPreviewTheme(v: unknown): v is PreviewTheme {
+export function isPreviewTheme(v: unknown): v is PreviewTheme {
   return v === "match" || v === "light" || v === "dark";
 }
 
