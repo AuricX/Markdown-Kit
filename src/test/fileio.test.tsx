@@ -81,3 +81,24 @@ test("menu-view switches the view (menu wiring)", async () => {
   listeners["menu-view"]({ payload: "editor" });
   expect(await screen.findByLabelText(/markdown editor/i)).toBeInTheDocument();
 });
+
+test("Save-As success writes via save_md", async () => {
+  saveDialog.mockResolvedValue("/tmp/out.md");
+  invoke.mockResolvedValue(undefined);
+  renderApp();
+  await userEvent.keyboard("{Meta>}s{/Meta}");
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith("save_md", { path: "/tmp/out.md", content: expect.any(String) })
+  );
+});
+
+test("document.title reflects the loaded file name", async () => {
+  invoke.mockImplementation((cmd: string) =>
+    cmd === "read_md" ? Promise.resolve("hi")
+    : cmd === "take_pending_file" ? Promise.resolve([])
+    : Promise.resolve(undefined));
+  renderApp();
+  await waitFor(() => expect(listeners["file-opened"]).toBeTypeOf("function"));
+  listeners["file-opened"]({ payload: "/tmp/note.md" });
+  await waitFor(() => expect(document.title).toContain("note.md"));
+});
