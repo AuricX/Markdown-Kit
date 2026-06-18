@@ -14,6 +14,7 @@ import { checkForUpdates } from "./updater";
 import { useDocument, basename } from "./hooks/useDocument";
 import { useOsIntegration } from "./hooks/useOsIntegration";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { usePreviewTheme } from "./hooks/usePreviewTheme";
 
 function App() {
   const {
@@ -27,6 +28,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const { toggle: toggleTheme } = useTheme();
   const settings = useSettings();
+  const previewTheme = usePreviewTheme();
 
   // Preview lags the editor by a frame so fast typing doesn't re-render the
   // (relatively expensive) markdown tree on every keystroke.
@@ -138,7 +140,7 @@ function App() {
       <SplitView
         viewMode={viewMode}
         left={<EditorPane value={content} onChange={onChange} />}
-        right={<PreviewPane value={deferredContent} />}
+        right={<PreviewPane value={deferredContent} resolvedTheme={previewTheme} />}
       />
     </div>
   );

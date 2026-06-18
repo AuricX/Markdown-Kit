@@ -5,10 +5,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-// `?inline` returns the CSS as a string instead of auto-injecting it, so we can
-// swap the active highlight.js theme by hand when the app theme changes.
-import githubDark from "highlight.js/styles/github-dark.css?inline";
-import githubLight from "highlight.js/styles/github.css?inline";
 
 export type Theme = "dark" | "light";
 const STORAGE_KEY = "md-theme";
@@ -36,25 +32,18 @@ function readStoredTheme(): Theme {
 }
 
 /**
- * Owns the dark/light theme. Drives three things off a single state:
+ * Owns the dark/light theme. Drives two things off a single state:
  *   1. `data-theme` on <html> for the CSS-variable palette,
- *   2. the injected highlight.js stylesheet for code blocks,
- *   3. persistence to localStorage.
+ *   2. persistence to localStorage.
+ *
+ * The highlight.js stylesheet is now managed by usePreviewTheme, keyed on
+ * the independent preview-theme axis.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-
-    let style = document.getElementById("hljs-theme") as HTMLStyleElement | null;
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "hljs-theme";
-      document.head.appendChild(style);
-    }
-    style.textContent = theme === "dark" ? githubDark : githubLight;
-
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {

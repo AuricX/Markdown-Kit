@@ -6,6 +6,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 interface PreviewPaneProps {
   value: string;
+  resolvedTheme: "light" | "dark";
 }
 
 // External (http/https) links must open in the user's browser, not navigate the
@@ -27,10 +28,10 @@ function handleLinkClick(e: MouseEvent<HTMLAnchorElement>, href?: string) {
  * SECURITY: raw HTML is intentionally NOT enabled (no rehype-raw). react-markdown
  * escapes HTML by default, protecting against <script> in adversarial .md files.
  */
-export default function PreviewPane({ value }: PreviewPaneProps) {
+export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) {
   return (
-    <div className="pane preview-pane" aria-label="Markdown preview">
-      <div className="markdown-body">
+    <div className="pane preview-pane" data-preview-theme={resolvedTheme} aria-label="Markdown preview">
+      <div className={`markdown-body${resolvedTheme === "dark" ? " prose-invert" : ""}`}>
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight]}
