@@ -1,5 +1,5 @@
 @import "tailwindcss";
-/* @plugin "@tailwindcss/typography"; — uncomment once @tailwindcss/typography is installed (requires network; not in pnpm store at task-1 time) */
+@plugin "@tailwindcss/typography";
 
 /* shadcn token bridge → Tailwind theme. Tokens are CSS vars set per data-theme. */
 @theme inline {
