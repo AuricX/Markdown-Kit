@@ -3,6 +3,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { cn } from "@/lib/utils";
 
 interface PreviewPaneProps {
   value: string;
@@ -30,8 +31,17 @@ function handleLinkClick(e: MouseEvent<HTMLAnchorElement>, href?: string) {
  */
 export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) {
   return (
-    <div className="pane preview-pane" data-preview-theme={resolvedTheme} aria-label="Markdown preview">
-      <div className={`markdown-body${resolvedTheme === "dark" ? " prose-invert" : ""}`}>
+    <div
+      className="h-full min-h-0 overflow-auto bg-background"
+      data-preview-theme={resolvedTheme}
+      aria-label="Markdown preview"
+    >
+      <div
+        className={cn(
+          "markdown-body prose mx-auto max-w-3xl px-6 py-4",
+          resolvedTheme === "dark" && "prose-invert"
+        )}
+      >
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight]}
