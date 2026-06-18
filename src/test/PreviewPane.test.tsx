@@ -3,6 +3,11 @@ import { vi } from "vitest";
 import PreviewPane from "../components/PreviewPane";
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
 
+test("blank/whitespace value shows the empty-state placeholder", () => {
+  render(<PreviewPane value={"   \n  "} resolvedTheme="light" />);
+  expect(screen.getByText("Nothing to preview")).toBeInTheDocument();
+});
+
 test("renders heading + GFM table + inline code", () => {
   render(<PreviewPane value={"# Title\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n`x`"} resolvedTheme="light" />);
   expect(screen.getByRole("heading", { name: "Title" })).toBeInTheDocument();

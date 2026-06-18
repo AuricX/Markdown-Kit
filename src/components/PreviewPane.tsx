@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { FileText } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -36,12 +37,18 @@ export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) 
       data-preview-theme={resolvedTheme}
       aria-label="Markdown preview"
     >
-      <div
-        className={cn(
-          "markdown-body prose mx-auto max-w-md px-6 py-4",
-          resolvedTheme === "dark" && "prose-invert"
-        )}
-      >
+      {value.trim() === "" ? (
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground/40 select-none">
+          <FileText className="h-12 w-12" strokeWidth={1.5} />
+          <p className="text-sm">Nothing to preview</p>
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "markdown-body prose mx-auto max-w-3xl px-6 py-10",
+            resolvedTheme === "dark" && "prose-invert"
+          )}
+        >
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight]}
@@ -55,7 +62,8 @@ export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) 
         >
           {value}
         </Markdown>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

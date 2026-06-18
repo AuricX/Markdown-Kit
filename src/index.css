@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* App theme is driven by data-theme, not a .dark class. Bind Tailwind's `dark:`
+   variant to it so shadcn primitives (Select/Button) follow the app theme
+   instead of the OS prefers-color-scheme default. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* shadcn token bridge → Tailwind theme. Tokens are CSS vars set per data-theme. */
 @theme inline {
   --color-background: var(--background);
@@ -90,6 +95,7 @@ body,
 body {
   margin: 0;
   font-size: var(--app-font-size, 14px);
+  color: var(--foreground);
 }
 
 /* CodeMirror must fill its pane. */
@@ -102,6 +108,13 @@ body {
 .markdown-body pre code.hljs {
   padding: 0;
   background: transparent;
+}
+
+/* prose hardcodes font-size:1rem, which severs the Settings font slider from the
+   preview. Re-anchor it to --app-font-size so the slider drives the preview again
+   (prose's em-based headings/spacing scale off this base). */
+.markdown-body.prose {
+  font-size: var(--app-font-size, 14px);
 }
 
 /* Print to PDF: show only the rendered preview. */
