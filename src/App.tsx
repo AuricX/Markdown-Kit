@@ -5,7 +5,7 @@ import SplitView from "./components/SplitView";
 import EditorPane from "./components/EditorPane";
 import PreviewPane from "./components/PreviewPane";
 import ErrorBanner from "./components/ErrorBanner";
-import Navbar from "./components/Navbar";
+import Toolbar from "./components/Toolbar";
 import type { ViewMode } from "./settings";
 import SettingsModal from "./components/SettingsModal";
 import { useTheme } from "./theme";
@@ -116,7 +116,7 @@ function App() {
 
   return (
     <div className="app">
-      <Navbar
+      <Toolbar
         fileName={fileName}
         dirty={dirty}
         viewMode={viewMode}
