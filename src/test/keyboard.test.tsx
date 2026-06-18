@@ -3,12 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 
-test("Cmd/Ctrl+S calls onSave; Escape calls onEscape", async () => {
+test("Cmd/Ctrl+S calls onSave", async () => {
   const onSave = vi.fn();
-  const onEscape = vi.fn();
-  renderHook(() => useKeyboardShortcuts({ onSave, onEscape }));
+  renderHook(() => useKeyboardShortcuts({ onSave }));
   await userEvent.keyboard("{Meta>}s{/Meta}");
   expect(onSave).toHaveBeenCalledTimes(1);
-  await userEvent.keyboard("{Escape}");
-  expect(onEscape).toHaveBeenCalledTimes(1);
 });

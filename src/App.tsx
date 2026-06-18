@@ -7,7 +7,7 @@ import PreviewPane from "./components/PreviewPane";
 import Banner from "./components/Banner";
 import Toolbar from "./components/Toolbar";
 import type { ViewMode } from "./settings";
-import SettingsModal from "./components/SettingsModal";
+import SettingsDialog from "./components/SettingsDialog";
 import { useTheme } from "./theme";
 import { useSettings, getSettings } from "./settings";
 import { checkForUpdates } from "./updater";
@@ -86,7 +86,7 @@ function App() {
   // Cmd/Ctrl+S → save; Escape closes the settings modal. (Other shortcuts are
   // owned by the native menu.) Uses the keyboard hook with ref-mirroring to avoid
   // re-attaching the listener on every `save` change.
-  useKeyboardShortcuts({ onSave: save, onEscape: () => setSettingsOpen(false) });
+  useKeyboardShortcuts({ onSave: save });
 
   // Signal the backend that the UI has mounted (for opt-in launch timing).
   useEffect(() => {
@@ -127,7 +127,7 @@ function App() {
         onViewChange={setViewMode}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {diskChanged && (
         <Banner
           message="This file changed on disk."
