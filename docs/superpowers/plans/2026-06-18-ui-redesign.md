@@ -26,7 +26,7 @@ Every task's requirements implicitly include this section. Values copied verbati
 
 1. **`ViewMode` type relocates from `components/Navbar.tsx` → `settings.ts`.** It is domain state (persisted as `defaultView`); this removes the current store→component import and survives the Navbar→Toolbar rename. All importers repoint to `./settings` / `../settings`.
 2. **CSS transition keeps BOTH stylesheets imported** (`index.css` + `styles.css`) until the final CSS-reduction task, deleting `styles.css` rules incrementally. This overrides spec §11.1's literal "renders unstyled-but-working" in favor of a styled, runnable app at every step (the stated §11 goal). Old CSS uses semantic classes (`.navbar`, `.markdown-body`); Tailwind uses utilities — negligible clash risk.
-3. **Verification model:** per locked decision §4 ("delete all 7 tests now, rewrite after"), refactor/restyle tasks (4–15) gate on `pnpm build` (tsc + vite) clean **+ manual smoke check**, not failing-test-first TDD. The test suite is rewritten in Task 16 and is where `previewTheme` logic + a11y get covered.
+3. **Verification model (human governance ruling 2026-06-18 — RUBRIC GOVERNS, overriding spec §4's batch-rewrite):** Every task that adds or changes logic or a component writes its OWN tests in the same commit, TDD-style (failing test → implement → pass → commit). `pnpm build` (tsc + vite) + manual smoke remain gates but do NOT replace tests. Task 3 still deletes the 7 *obsolete* tests (they cover renamed/removed components) **and** augments `setup.ts` for Radix-under-jsdom so Tasks 9+ can test dialog/select/tooltip. The detailed test blocks under Task 15 are the **canonical reference patterns**; each task implements the subset covering its surface, and Task 15 is a coverage **audit**, not the sole test-writing task.
 
 ---
 
@@ -347,17 +347,19 @@ git commit -m "build: scaffold shadcn/ui (button, dialog, select, tooltip) + cn"
 
 ---
 
-## Task 3: Delete obsolete frontend tests
+## Task 3: Reset test suite — delete obsolete tests + prep setup.ts for Radix
 
-Per locked decision §4 — delete all 7 now, rewrite in Task 16. Unblocks refactor churn. `setup.ts` is KEPT.
+Delete the 7 tests that cover renamed/removed components (they'd fail the moment Task 4+ lands); each later task writes fresh tests for its own surface (rubric-governs). Augment `setup.ts` now so Radix-under-jsdom works for Tasks 9+ (tooltip/dialog/select).
 
 **Files:**
 - Delete: `src/test/{App,EditorPane,Navbar,PreviewPane,fileio,settings,theme}.test.tsx`
-- Keep: `src/test/setup.ts`, `vitest.config.ts`
+- Modify: `src/test/setup.ts`
+- Keep: `vitest.config.ts`
 
-**Interfaces:** none.
+**Interfaces:**
+- Produces: jsdom stubs (`window.matchMedia`, `Element.prototype.{has,set,release}PointerCapture`, `scrollIntoView`) consumed by Tasks 9, 13, 14 tests.
 
-- [ ] **Step 1: Delete the seven test files**
+- [ ] **Step 1: Delete the seven obsolete test files**
 
 ```bash
 git rm src/test/App.test.tsx src/test/EditorPane.test.tsx src/test/Navbar.test.tsx \
@@ -365,20 +367,50 @@ git rm src/test/App.test.tsx src/test/EditorPane.test.tsx src/test/Navbar.test.t
        src/test/theme.test.tsx
 ```
 
-- [ ] **Step 2: Verify the test runner is green with no tests**
+- [ ] **Step 2: Augment `setup.ts` (matchMedia + pointer stubs for Radix)**
+
+Append to `src/test/setup.ts` (keep existing ResizeObserver + MemoryStorage):
+
+```ts
+// Radix Dialog/Select probe these under jsdom; provide no-op stubs.
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+      dispatchEvent() {
+        return false;
+      },
+    }) as unknown as MediaQueryList;
+}
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.setPointerCapture = () => {};
+  Element.prototype.releasePointerCapture = () => {};
+  Element.prototype.scrollIntoView = () => {};
+}
+```
+
+- [ ] **Step 3: Verify the test runner is green with no test files**
 
 Run: `pnpm test`
-Expected: Vitest reports "no test files found" (exit 0) — no failures. (`setup.ts` is a setup file, not a test.)
+Expected: Vitest reports "no test files found" (exit 0) — `setup.ts` is a setup file, not a test, and must not throw on load.
 
-- [ ] **Step 3: Verify build still clean**
+- [ ] **Step 4: Verify build still clean**
 
 Run: `pnpm build`
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git commit -m "test: remove frontend tests ahead of UI refactor (rewritten in §10)"
+git add src/test/setup.ts
+git commit -m "test: remove obsolete tests; add Radix jsdom stubs to setup"
 ```
 
 ---
@@ -1038,31 +1070,52 @@ export function usePreviewTheme(): "light" | "dark" {
 }
 ```
 
-- [ ] **Step 3: Call it in `App.tsx`**
+- [ ] **Step 3: Call it in `App.tsx` and APPLY it in PreviewPane (no unused prop)**
+
+App.tsx:
 
 ```tsx
 const previewTheme = usePreviewTheme();
-```
-
-Pass to PreviewPane (prop is consumed fully in Task 12; harmless now):
-
-```tsx
+// ...in JSX:
 right={<PreviewPane value={deferredContent} resolvedTheme={previewTheme} />}
 ```
 
-Add the optional prop to PreviewPane now so the build passes (Task 12 wires it into the DOM):
+PreviewPane.tsx — add a **required** `resolvedTheme` prop and use it immediately: `data-preview-theme` on the wrapper (drives the independent palette vars from index.css) + toggle `prose-invert`. (Task 11 adds the full `prose` typography classes; this task wires the theme axis so palette + hljs are independent end-to-end.) Keep imports / `handleLinkClick` / security comment / plugins / the `a` override unchanged:
 
-`src/components/PreviewPane.tsx` — `interface PreviewPaneProps { value: string; resolvedTheme?: "light" | "dark"; }` and accept (unused yet — prefix `_` or reference in a comment to satisfy `noUnusedParameters`; cleanest: destructure and use in Task 12. For now: `export default function PreviewPane({ value }: PreviewPaneProps)` and leave `resolvedTheme` optional/unread — TS allows unused optional props since they aren't parameters of concern only if destructured. To avoid the lint, do NOT destructure it yet; just widen the interface.)
+```tsx
+interface PreviewPaneProps {
+  value: string;
+  resolvedTheme: "light" | "dark";
+}
 
-- [ ] **Step 4: Verify build + smoke**
+export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) {
+  return (
+    <div className="pane preview-pane" data-preview-theme={resolvedTheme} aria-label="Markdown preview">
+      <div className={`markdown-body${resolvedTheme === "dark" ? " prose-invert" : ""}`}>
+        <Markdown /* …unchanged remark/rehype/components… */>{value}</Markdown>
+      </div>
+    </div>
+  );
+}
+```
+
+> `pane preview-pane`/`markdown-body` classes still come from `styles.css` until Tasks 11/14. `prose-invert` has no effect until `prose` lands in Task 11 — harmless, and the prop is genuinely used now.
+
+- [ ] **Step 4: Write/extend tests (TDD) — theme + preview resolution**
+
+Per the governance ruling (Global Constraints #3), cover this task's logic now. Use the **Task 15 reference block** `theme.test.tsx` as the canonical pattern, but **strengthen the resolution assertion**: assert the RESOLVED value/branch (e.g. `previewTheme:"light"` + app dark → hljs follows light; `"match"` → follows app), not CSS contents (`?inline` is empty under Vitest — see repo CLAUDE.md). Files: `src/test/theme.test.tsx`.
+
+Run: `pnpm test src/test/theme.test.tsx` → PASS.
+
+- [ ] **Step 5: Verify build + smoke**
 
 Run: `pnpm build` → PASS.
-Smoke: toggle app theme → code-block colors follow. Set `md-settings.previewTheme` to `"light"` in devtools localStorage, reload with app in dark → hljs in preview is light (full preview palette lands in Task 12). App theme toggle still themes chrome + editor.
+Smoke: app **dark** + set `md-settings.previewTheme="light"` (devtools) + reload → preview bg/fg + hljs are light while chrome/editor stay dark (independent axis works end-to-end; `prose` typography polish lands in Task 11). `"match"` → preview follows app. App theme toggle still themes chrome + editor.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/theme.tsx src/hooks/usePreviewTheme.ts src/App.tsx src/components/PreviewPane.tsx
+git add src/theme.tsx src/hooks/usePreviewTheme.ts src/App.tsx src/components/PreviewPane.tsx src/test/theme.test.tsx
 git commit -m "feat(theme): independent preview theme; move hljs swap to usePreviewTheme"
 ```
 
@@ -1303,20 +1356,15 @@ git commit -m "style: Tailwind for SplitView + EditorPane wrapper"
 - Modify: `src/components/PreviewPane.tsx`
 
 **Interfaces:**
-- Consumes: `resolvedTheme: "light" | "dark"` (App, Task 8).
+- Consumes: `resolvedTheme: "light" | "dark"` — already wired in Task 8 (required prop). This task only swaps the wrapper to Tailwind + adds `prose` typography.
 - Produces: same render contract; security (no rehype-raw) + link handler unchanged.
 
 - [ ] **Step 1: Restyle `PreviewPane.tsx`**
 
-Keep imports, `handleLinkClick`, the security comment, plugins, and the `a` component override exactly. Replace the wrapper:
+The `resolvedTheme` prop + `data-preview-theme` + `prose-invert` already exist from Task 8. Here: replace the `pane preview-pane` / `markdown-body`-only wrapper with Tailwind + `prose`. Keep imports, `handleLinkClick`, the security comment, plugins, and the `a` override exactly. Add `import { cn } from "@/lib/utils";`:
 
 ```tsx
-interface PreviewPaneProps {
-  value: string;
-  resolvedTheme?: "light" | "dark";
-}
-
-export default function PreviewPane({ value, resolvedTheme = "dark" }: PreviewPaneProps) {
+export default function PreviewPane({ value, resolvedTheme }: PreviewPaneProps) {
   return (
     <div
       className="h-full min-h-0 overflow-auto bg-background"
@@ -1336,18 +1384,24 @@ export default function PreviewPane({ value, resolvedTheme = "dark" }: PreviewPa
 }
 ```
 
-Add `import { cn } from "@/lib/utils";`. Keep `.markdown-body` on the inner div — Task 15's hljs/print CSS still keys on it.
+Interface stays as set in Task 8 (`resolvedTheme: "light" | "dark"`, required). Keep `.markdown-body` on the inner div — the hljs/print CSS (Task 14) still keys on it.
 
-- [ ] **Step 2: Verify build + smoke**
+- [ ] **Step 2: Write tests (TDD) — PreviewPane render + security + theme class**
+
+Cover this surface now. Use the **Task 15 reference block** `PreviewPane.test.tsx`: renders heading/GFM table/inline code; raw HTML escaped (no `<script>`); `resolvedTheme="dark"` applies `prose-invert` + `data-preview-theme="dark"`. File: `src/test/PreviewPane.test.tsx`.
+
+Run: `pnpm test src/test/PreviewPane.test.tsx` → PASS.
+
+- [ ] **Step 3: Verify build + smoke**
 
 Run: `pnpm build` → PASS.
-Smoke — the headline feature: app **dark** + Settings preview **light** → preview shows light bg + light hljs while chrome/editor stay dark; switch preview to **Match** → follows app theme. Headings/lists/tables/inline code render via `prose`. XSS guard intact (`<script>` in `.md` stays escaped text).
+Smoke — headline feature, now with typography: app **dark** + Settings preview **light** → preview shows light bg + light hljs + light `prose` while chrome/editor stay dark; **Match** → follows app. Headings/lists/tables/inline code render via `prose`. XSS guard intact.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/PreviewPane.tsx
-git commit -m "feat(ui): prose preview with independent theme palette"
+git add src/components/PreviewPane.tsx src/test/PreviewPane.test.tsx
+git commit -m "feat(ui): prose preview typography"
 ```
 
 ---
@@ -1666,46 +1720,20 @@ git commit -m "style: retire styles.css; fold essentials into index.css"
 
 ---
 
-## Task 15: Rewrite the test suite
+## Task 15: Test coverage audit + gaps
 
-Augment `setup.ts` for Radix-under-jsdom, then write tests covering §10. Vitest config unchanged except it already points at `setup.ts`.
+Under rubric-governs (Global Constraints #3), tests are written in their owning tasks. This task is the **audit**: run the full suite, check it against the §10 coverage matrix, write any net-new gap tests, confirm green. `setup.ts` was already augmented for Radix in Task 3. The code blocks below are the **canonical reference patterns** each owning task implements — the owner is noted per block; reproduced here so the audit can diff intent vs. what landed.
 
 **Files:**
-- Modify: `src/test/setup.ts`
-- Create: `src/test/{App,fileio,view,settings,theme,SettingsDialog,PreviewPane}.test.tsx`
+- Audit/possibly create: `src/test/{App,fileio,view,settings,theme,SettingsDialog,PreviewPane}.test.tsx`
 
 **Interfaces:** consumes all prior tasks' public component/hook/store APIs.
 
-- [ ] **Step 1: Augment `setup.ts` (matchMedia + pointer stubs for Radix)**
+**Coverage matrix (§10) → owning task:** App render/view-defaults → T9; file-open/save/read-fail → T5; view switching → T9; settings store incl. previewTheme → T4; app-theme + hljs-keyed-to-preview → T8; PreviewPane render/GFM/XSS/theme-class → T11; SettingsDialog a11y → T13.
 
-Append to `src/test/setup.ts` (keep existing ResizeObserver + MemoryStorage):
+> **Reference patterns** (owner in parens). Each owning task writes its block; this audit verifies presence + strengthens where noted.
 
-```ts
-// Radix Dialog/Select probe these under jsdom; provide no-op stubs.
-if (!window.matchMedia) {
-  window.matchMedia = (query: string) =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addEventListener() {},
-      removeEventListener() {},
-      addListener() {},
-      removeListener() {},
-      dispatchEvent() {
-        return false;
-      },
-    }) as unknown as MediaQueryList;
-}
-if (!Element.prototype.hasPointerCapture) {
-  Element.prototype.hasPointerCapture = () => false;
-  Element.prototype.setPointerCapture = () => {};
-  Element.prototype.releasePointerCapture = () => {};
-  Element.prototype.scrollIntoView = () => {};
-}
-```
-
-- [ ] **Step 2: Write `App.test.tsx` (render + view defaults)**
+- [ ] **Reference: `App.test.tsx` (owner: Task 9 — render + view defaults)**
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -1748,7 +1776,7 @@ test("opens the settings dialog", async () => {
 });
 ```
 
-- [ ] **Step 3: Write `fileio.test.tsx` (file-opened, save, save-as, read-fail)**
+- [ ] **Reference: `fileio.test.tsx` (owner: Task 5 — file-opened, save, save-as, read-fail)**
 
 Mirror the old fileio test, asserting loaded text **in the preview pane**. Mock `@tauri-apps/api/core` + plugins.
 
@@ -1822,7 +1850,7 @@ test("read failure shows the error banner", async () => {
 });
 ```
 
-- [ ] **Step 4: Write `settings.test.tsx` (store: clamp, validate, persist, previewTheme)**
+- [ ] **Reference: `settings.test.tsx` (owner: Task 4 — store: clamp, validate, persist, previewTheme)**
 
 ```tsx
 import { getSettings, setSettings } from "../settings";
@@ -1851,7 +1879,7 @@ test("previewTheme validates + persists", () => {
 });
 ```
 
-- [ ] **Step 5: Write `theme.test.tsx` (app theme + hljs keyed on preview)**
+- [ ] **Reference: `theme.test.tsx` (owner: Task 8 — app theme + hljs keyed on resolved preview)**
 
 ```tsx
 import { render, screen, act } from "@testing-library/react";
@@ -1883,7 +1911,7 @@ test("hljs style injected and follows resolved preview theme", () => {
 
 > `?inline` resolves to empty under the Vitest transform (see CLAUDE.md) — assert the injection mechanism + the resolved value path, not CSS contents.
 
-- [ ] **Step 6: Write `PreviewPane.test.tsx` (render, GFM, XSS guard, theme class)**
+- [ ] **Reference: `PreviewPane.test.tsx` (owner: Task 11 — render, GFM, XSS guard, theme class)**
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -1910,7 +1938,7 @@ test("dark resolvedTheme applies prose-invert + data-preview-theme", () => {
 });
 ```
 
-- [ ] **Step 7: Write `SettingsDialog.test.tsx` (a11y: role, Escape, focus)**
+- [ ] **Reference: `SettingsDialog.test.tsx` (owner: Task 13 — a11y: role, Escape, focus)**
 
 ```tsx
 import { render, screen, waitFor } from "@testing-library/react";
@@ -1942,7 +1970,7 @@ test("exposes the preview-theme control", async () => {
 });
 ```
 
-- [ ] **Step 8: Write `view.test.tsx` (view switching)**
+- [ ] **Reference: `view.test.tsx` (owner: Task 9 — view switching)**
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -1966,17 +1994,23 @@ test("editor-only hides preview; preview-only hides editor", async () => {
 });
 ```
 
-- [ ] **Step 9: Run the suite green**
+- [ ] **Audit Step 1: Run the full suite**
 
 Run: `pnpm test`
-Expected: PASS — all files green. Fix any jsdom/Radix gaps by extending `setup.ts` (not the components). If a Radix Select interaction is flaky under jsdom, assert presence of the trigger (`getByLabelText`) rather than driving the listbox open.
+Expected: PASS — every per-task test file green. Fix any jsdom/Radix gaps by extending `setup.ts` (not the components). If a Radix Select interaction is flaky under jsdom, assert presence of the trigger (`getByLabelText`) rather than driving the listbox open.
 
-- [ ] **Step 10: Commit**
+- [ ] **Audit Step 2: Diff coverage vs. the §10 matrix**
+
+For each row in the coverage matrix above, confirm a test exists and asserts the stated behavior. Write any **net-new** gap test here (e.g. a missing `view.test.tsx` case). Most files already exist from their owning tasks — this step only fills holes the audit finds.
+
+- [ ] **Audit Step 3: Commit (only if this task created/changed files)**
 
 ```bash
 git add src/test/
-git commit -m "test: rewrite frontend suite for redesigned UI + previewTheme"
+git commit -m "test: coverage audit + gap tests for redesigned UI"
 ```
+
+If the audit found no gaps (all owning tasks covered their surface), there is nothing to commit — record "Task 15: audit clean, no gaps" in the ledger and proceed.
 
 ---
 
@@ -2030,4 +2064,4 @@ If all green, the branch is ready for `superpowers:finishing-a-development-branc
 
 **3. Type consistency:** `ViewMode`/`PreviewTheme` defined once (settings.ts, Task 4), imported everywhere after. `usePreviewTheme(): "light"|"dark"` (Task 8) ↔ `PreviewPane resolvedTheme?: "light"|"dark"` (Task 11) ↔ App passes `previewTheme` (Task 8). `UseDocument` shape (Task 5) ↔ `useOsIntegration` handler names (Task 6) match (`loadFile/newDoc/openFromDialog/save/checkDisk`). `useKeyboardShortcuts` signature narrows in Task 13 (drops `onEscape`) — flagged at both sites.
 
-**Known residual risk:** Task 8 widens `PreviewPaneProps` with an unread optional prop to keep the build green before Task 11 wires it; `noUnusedParameters` is satisfied because it's an interface field, not a destructured param. Confirmed safe.
+**Governance note (2026-06-18):** human ruling = **rubric governs** (Global Constraints #3). Tests are written per-task (TDD), not batched: `setup.ts` Radix stubs land in Task 3; Task 8 makes `resolvedTheme` a required, immediately-used prop (no unused-prop window); Task 15 is a coverage audit over per-task tests, with the code blocks serving as canonical reference patterns (owner noted per block). Spec §4's "delete-then-rewrite" is overridden for new tests; obsolete tests are still deleted in Task 3.
